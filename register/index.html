@@ -44,6 +44,13 @@
   #msg.err{background:var(--warn)}
   .hide{display:none!important}
   @media (prefers-reduced-motion:no-preference){ #msg{transition:opacity .2s} }
+  .tabs{display:flex;gap:8px;margin:0 0 14px}
+  .tabs button{flex:1;font:500 15px "Noto Sans Thai",sans-serif;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer}
+  .tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  select{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  select:focus{outline:3px solid #8FD1A9;outline-offset:1px}
+  .hint.bad{color:var(--warn)}
+  .mine b{font-weight:500}
 </style>
 </head>
 <body>
@@ -62,33 +69,46 @@
   <section id="app" class="hide">
     <h1>ลงทะเบียนร้านที่คุณดูแล</h1>
     <p class="sub">ลงทะเบียนครั้งเดียว ใช้ได้กับทุกระบบของทีม เพิ่มได้หลายร้าน</p>
-
-    <div id="mineBox" class="hide">
-      <h2>ร้านที่ลงทะเบียนแล้ว</h2>
-      <div class="card"><ul class="mine" id="mine"></ul></div>
+    <div class="tabs">
+      <button type="button" id="tabReg" class="on">ลงทะเบียน</button>
+      <button type="button" id="tabMine">ร้านของฉัน (<span id="cnt">0</span>)</button>
     </div>
 
-    <h2 id="formTitle">ข้อมูลของคุณ</h2>
-    <div class="card">
-      <label for="name">ชื่อ-สกุล</label>
-      <input id="name" type="text" autocomplete="name">
-      <label for="phone">เบอร์โทรศัพท์</label>
-      <input id="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="0812345678">
-      <div class="hint">ตัวเลข 10 หลัก ขึ้นต้นด้วย 0</div>
-      <label for="position">ตำแหน่ง</label>
-      <input id="position" type="text" placeholder="เช่น Merchandiser, BA">
-
-      <label for="q">ร้าน</label>
-      <div id="picked" class="chip hide"><span id="pickedText"></span><button type="button" id="change">เปลี่ยนร้าน</button></div>
-      <div id="searchBox">
-        <input id="q" type="text" autocomplete="off" placeholder="พิมพ์ชื่อร้านหรือรหัสร้านอย่างน้อย 2 ตัวอักษร">
-        <div class="hint" id="qHint"></div>
-        <ul class="list hide" id="results"></ul>
+    <section id="viewMine" class="hide">
+      <div class="card">
+        <ul class="mine" id="mine"></ul>
+        <p id="mineEmpty" class="sub" style="margin:0">ยังไม่มีร้านที่ลงทะเบียน</p>
+        <button class="btn ghost" id="goReg" type="button">+ ลงทะเบียนร้านเพิ่ม</button>
       </div>
+    </section>
 
-      <button class="btn" id="save">ลงทะเบียนร้านนี้</button>
-      <button class="btn ghost hide" id="closeBtn">ปิดหน้านี้</button>
-    </div>
+    <section id="viewReg">
+      <div class="card">
+        <label for="name">ชื่อ-สกุล</label>
+        <input id="name" type="text" autocomplete="name">
+        <label for="phone">เบอร์โทรศัพท์</label>
+        <input id="phone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="0812345678">
+        <div class="hint" id="phoneHint">ตัวเลข 10 หลัก ขึ้นต้นด้วย 0</div>
+        <label for="position">ตำแหน่ง</label>
+        <select id="position">
+          <option value="">เลือกตำแหน่ง</option>
+          <option>Mer</option><option>Sup</option><option>BA</option><option>SSP</option>
+        </select>
+
+        <label for="cust">Customer</label>
+        <select id="cust"><option value="">ทุก Customer</option></select>
+        <label for="q">ร้าน</label>
+        <div id="picked" class="chip hide"><span id="pickedText"></span><button type="button" id="change">เปลี่ยนร้าน</button></div>
+        <div id="searchBox">
+          <input id="q" type="text" autocomplete="off" placeholder="พิมพ์ชื่อร้าน รหัสร้าน หรือชื่อ SSP อย่างน้อย 2 ตัวอักษร">
+          <div class="hint" id="qHint"></div>
+          <ul class="list hide" id="results"></ul>
+        </div>
+
+        <button class="btn" id="save">ลงทะเบียนร้านนี้</button>
+        <button class="btn ghost hide" id="closeBtn">ปิดหน้านี้</button>
+      </div>
+    </section>
   </section>
 </main>
 <div id="msg" role="status" aria-live="polite"></div>
@@ -145,38 +165,68 @@ $('devGo').onclick = async () => {
 
 async function startApp(){
   $('app').classList.remove('hide');
-  try { await loadMine(true); } catch (e){ toast(e.message, true); }
+  try {
+    const [c] = await Promise.all([api('getCustomers'), loadMine(true)]);
+    $('cust').innerHTML = '<option value="">ทุก Customer</option>' + c.customers.map(x => `<option>${esc(x)}</option>`).join('');
+  } catch (e){ toast(e.message, true); }
 }
+
+const meta = o => [o.customer, 'รหัส ' + o.storeId, o.ssp ? 'SSP ' + o.ssp : '', o.province].filter(Boolean).join(' · ');
+
+function show(view){
+  $('viewReg').classList.toggle('hide', view !== 'reg');
+  $('viewMine').classList.toggle('hide', view !== 'mine');
+  $('tabReg').classList.toggle('on', view === 'reg');
+  $('tabMine').classList.toggle('on', view === 'mine');
+  window.scrollTo({ top: 0 });
+}
+$('tabReg').onclick = () => show('reg');
+$('tabMine').onclick = () => show('mine');
+$('goReg').onclick = () => show('reg');
+
+function phoneHint(){
+  const v = $('phone').value, ok = /^0\d{9}$/.test(v), h = $('phoneHint');
+  h.textContent = !v ? 'ตัวเลข 10 หลัก ขึ้นต้นด้วย 0'
+    : ok ? 'ครบ 10 หลัก'
+    : `กรอกแล้ว ${v.length}/10 หลัก${v[0] !== '0' ? ' (ต้องขึ้นต้นด้วย 0)' : ''}`;
+  h.className = 'hint' + (v && !ok ? ' bad' : '');
+}
+$('phone').addEventListener('input', () => {
+  $('phone').value = $('phone').value.replace(/\D/g, '').slice(0, 10);
+  phoneHint();
+});
 
 async function loadMine(prefill){
   const out = await api('getMyStores');
   renderMine(out.registrations);
   if (prefill && out.person){
-    $('name').value = out.person.name; $('phone').value = out.person.phone; $('position').value = out.person.position;
+    $('name').value = out.person.name;
+    $('phone').value = String(out.person.phone || '').replace(/\D/g, '').slice(0, 10);
+    $('position').value = out.person.position;
+    phoneHint();
   }
 }
 
 function renderMine(regs){
   mineIds = new Set(regs.map(r => r.storeId));
-  $('mineBox').classList.toggle('hide', !regs.length);
-  $('mine').innerHTML = regs.map(r =>
-    `<li>${esc(r.storeName)}<small>${esc(r.customer)} · รหัส ${esc(r.storeId)}${r.province ? ' · ' + esc(r.province) : ''}</small></li>`).join('');
-  $('formTitle').textContent = regs.length ? 'เพิ่มหรืออัปเดตร้าน' : 'ข้อมูลของคุณ';
+  $('cnt').textContent = regs.length;
+  $('mine').innerHTML = regs.map(r => `<li><b>${esc(r.storeName)}</b><small>${esc(meta(r))}</small></li>`).join('');
+  $('mineEmpty').classList.toggle('hide', regs.length > 0);
 }
 
 /* ----- ค้นหาร้าน ----- */
 let timer = null;
-$('q').addEventListener('input', () => {
+function runSearch(){
   clearTimeout(timer);
   const q = $('q').value.trim();
   if (q.length < 2){ $('results').classList.add('hide'); $('qHint').textContent = ''; return; }
   timer = setTimeout(async () => {
     try {
       $('qHint').textContent = 'กำลังค้นหา…';
-      const out = await api('getStores', { q });
+      const out = await api('getStores', { q, customer: $('cust').value });
       $('qHint').textContent = out.stores.length ? '' : 'ไม่พบร้านที่ตรงกัน ลองใช้รหัสร้านหรือคำอื่น';
       $('results').innerHTML = out.stores.map((s, i) =>
-        `<li><button type="button" data-i="${i}">${esc(s.name)}<small>${esc(s.customer)} · รหัส ${esc(s.storeId)}${s.province ? ' · ' + esc(s.province) : ''}${mineIds.has(s.storeId) ? ' · ลงทะเบียนแล้ว' : ''}</small></button></li>`).join('');
+        `<li><button type="button" data-i="${i}">${esc(s.name)}<small>${esc(meta(s))}${mineIds.has(s.storeId) ? ' · ลงทะเบียนแล้ว' : ''}</small></button></li>`).join('');
       $('results').classList.toggle('hide', !out.stores.length);
       $('results').onclick = ev => {
         const b = ev.target.closest('button[data-i]'); if (!b) return;
@@ -184,7 +234,9 @@ $('q').addEventListener('input', () => {
       };
     } catch (e){ $('qHint').textContent = ''; toast(e.message, true); }
   }, 300);
-});
+}
+$('q').addEventListener('input', runSearch);
+$('cust').addEventListener('change', runSearch);
 
 function pick(s){
   picked = s;
@@ -201,9 +253,10 @@ $('change').onclick = () => {
 $('save').onclick = async () => {
   const name = $('name').value.trim();
   const phone = $('phone').value.replace(/\D/g, '');
-  const position = $('position').value.trim();
+  const position = $('position').value;
   if (!name) return toast('กรุณากรอกชื่อ-สกุล', true);
-  if (!/^0\d{9}$/.test(phone)) return toast('เบอร์โทรต้องเป็นตัวเลข 10 หลัก ขึ้นต้นด้วย 0', true);
+  if (!/^0\d{9}$/.test(phone)) return toast('เบอร์โทรต้องครบ 10 หลัก ขึ้นต้นด้วย 0', true);
+  if (!position) return toast('กรุณาเลือกตำแหน่ง', true);
   if (!picked) return toast('กรุณาเลือกร้าน', true);
   const btn = $('save'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   try {
@@ -217,6 +270,7 @@ $('save').onclick = async () => {
 };
 
 $('closeBtn').onclick = () => { if (window.liff && liff.isInClient()) liff.closeWindow(); };
+
 
 boot();
 </script>
