@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ลงทะเบียนร้าน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --paper:#F5F6F1; --card:#FFFFFF; --ink:#1B2A22; --muted:#5E6B63; --line:#D6DCD3;
+    --brand:#0B7A3F; --brand-ink:#FFFFFF; --soft:#E4F1E8; --warn:#B3261E;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font:400 16px/1.55 "Noto Sans Thai",system-ui,sans-serif;
+       padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+  main{max-width:480px;margin:0 auto}
+  h1{font-size:22px;line-height:1.3;margin:8px 0 4px}
+  h2{font-size:16px;margin:28px 0 8px}
+  p.sub{margin:0 0 16px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  label{display:block;font-weight:500;margin:14px 0 4px}
+  input[type=text],input[type=tel]{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  input:focus,button:focus-visible{outline:3px solid #8FD1A9;outline-offset:1px}
+  .hint{font-size:13px;color:var(--muted);margin-top:4px}
+  .btn{display:block;width:100%;font:500 16px "Noto Sans Thai",sans-serif;padding:13px;margin-top:20px;border:0;border-radius:8px;background:var(--brand);color:var(--brand-ink);cursor:pointer}
+  .btn[disabled]{opacity:.55;cursor:default}
+  .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand);margin-top:12px}
+  .list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:8px;background:#fff;max-height:260px;overflow:auto}
+  .list li button{display:block;width:100%;text-align:left;font:inherit;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 12px;cursor:pointer;color:var(--ink)}
+  .list li:last-child button{border-bottom:0}
+  .list li button:hover{background:var(--soft)}
+  .list small{display:block;color:var(--muted)}
+  .chip{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--soft);border-radius:8px;padding:10px 12px}
+  .chip button{background:none;border:0;color:var(--brand);font:500 14px "Noto Sans Thai",sans-serif;cursor:pointer}
+  .mine{list-style:none;margin:0;padding:0}
+  .mine li{padding:10px 0;border-bottom:1px solid var(--line)}
+  .mine li:last-child{border-bottom:0}
+  .mine small{display:block;color:var(--muted)}
+  #msg{position:fixed;left:16px;right:16px;bottom:max(16px,env(safe-area-inset-bottom));max-width:448px;margin:0 auto;padding:12px 14px;border-radius:8px;background:var(--ink);color:#fff;display:none}
+  #msg.err{background:var(--warn)}
+  .hide{display:none!important}
+  @media (prefers-reduced-motion:no-preference){ #msg{transition:opacity .2s} }
+</style>
+</head>
+<body>
+<main>
+  <!-- Dev login: shown only when LIFF_ID is blank -->
+  <section id="dev" class="hide">
+    <h1>โหมดทดสอบ</h1>
+    <p class="sub">ยังไม่ได้ใส่ LIFF ID ใส่ LINE User ID เองเพื่อทดสอบในเบราว์เซอร์</p>
+    <div class="card">
+      <label for="devId">LINE User ID</label>
+      <input id="devId" type="text" autocomplete="off" placeholder="Uxxxxxxxx…">
+      <button class="btn" id="devGo">เข้าสู่หน้าลงทะเบียน</button>
+    </div>
+  </section>
+
+  <section id="app" class="hide">
+    <h1>ลงทะเบียนร้านที่คุณดูแล</h1>
+    <p class="sub">ลงทะเบียนครั้งเดียว ใช้ได้กับทุกระบบของทีม เพิ่มได้หลายร้าน</p>
+
+    <div id="mineBox" class="hide">
+      <h2>ร้านที่ลงทะเบียนแล้ว</h2>
+      <div class="card"><ul class="mine" id="mine"></ul></div>
+    </div>
+
+    <h2 id="formTitle">ข้อมูลของคุณ</h2>
+    <div class="card">
+      <label for="name">ชื่อ-สกุล</label>
+      <input id="name" type="text" autocomplete="name">
+      <label for="phone">เบอร์โทรศัพท์</label>
+      <input id="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="0812345678">
+      <div class="hint">ตัวเลข 10 หลัก ขึ้นต้นด้วย 0</div>
+      <label for="position">ตำแหน่ง</label>
+      <input id="position" type="text" placeholder="เช่น Merchandiser, BA">
+
+      <label for="q">ร้าน</label>
+      <div id="picked" class="chip hide"><span id="pickedText"></span><button type="button" id="change">เปลี่ยนร้าน</button></div>
+      <div id="searchBox">
+        <input id="q" type="text" autocomplete="off" placeholder="พิมพ์ชื่อร้านหรือรหัสร้านอย่างน้อย 2 ตัวอักษร">
+        <div class="hint" id="qHint"></div>
+        <ul class="list hide" id="results"></ul>
+      </div>
+
+      <button class="btn" id="save">ลงทะเบียนร้านนี้</button>
+      <button class="btn ghost hide" id="closeBtn">ปิดหน้านี้</button>
+    </div>
+  </section>
+</main>
+<div id="msg" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== แก้ 2 ค่านี้ที่เดียว ===== */
+const CONFIG = {
+  LIFF_ID: '2011853037-5NWPB922',  // เว้นว่าง = โหมดทดสอบ (dev login)
+  API_URL: 'https://script.google.com/macros/s/AKfycbyjDeCpzYEEx6oe3wRlvrYj9PA_oCadxu5H7O-J7KladfpBLBePBl9PbJ9dejDnqqYI/exec' // URL /exec ของ GAS Web App
+};
+/* ================================ */
+
+let auth = null;          // {idToken} หรือ {devLineId}
+let picked = null;        // ร้านที่เลือก
+let mineIds = new Set();  // StoreID ที่ลงทะเบียนแล้ว
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(text, isErr){
+  const m = $('msg'); m.textContent = text; m.className = isErr ? 'err' : ''; m.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => { m.style.display = 'none'; }, isErr ? 6000 : 3500);
+}
+
+async function api(action, data){
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // กัน CORS preflight
+    body: JSON.stringify(Object.assign({ action }, auth || {}, data || {}))
+  });
+  const out = await res.json();
+  if (!out.ok) throw new Error(out.error || 'เกิดข้อผิดพลาด');
+  return out;
+}
+
+async function boot(){
+  if (!CONFIG.LIFF_ID){ $('dev').classList.remove('hide'); return; }
+  try {
+    await liff.init({ liffId: CONFIG.LIFF_ID });
+    if (!liff.isLoggedIn()){ liff.login(); return; }
+    auth = { idToken: liff.getIDToken() };
+    if (!auth.idToken) throw new Error('ไม่พบ ID token — ตรวจว่า LIFF มี scope openid');
+    if (liff.isInClient()) $('closeBtn').classList.remove('hide');
+    await startApp();
+  } catch (e){ toast(e.message || String(e), true); }
+}
+
+$('devGo').onclick = async () => {
+  const id = $('devId').value.trim();
+  if (!id) return toast('กรุณาใส่ LINE User ID', true);
+  auth = { devLineId: id };
+  $('dev').classList.add('hide');
+  await startApp();
+};
+
+async function startApp(){
+  $('app').classList.remove('hide');
+  try { await loadMine(true); } catch (e){ toast(e.message, true); }
+}
+
+async function loadMine(prefill){
+  const out = await api('getMyStores');
+  renderMine(out.registrations);
+  if (prefill && out.person){
+    $('name').value = out.person.name; $('phone').value = out.person.phone; $('position').value = out.person.position;
+  }
+}
+
+function renderMine(regs){
+  mineIds = new Set(regs.map(r => r.storeId));
+  $('mineBox').classList.toggle('hide', !regs.length);
+  $('mine').innerHTML = regs.map(r =>
+    `<li>${esc(r.storeName)}<small>${esc(r.customer)} · รหัส ${esc(r.storeId)}${r.province ? ' · ' + esc(r.province) : ''}</small></li>`).join('');
+  $('formTitle').textContent = regs.length ? 'เพิ่มหรืออัปเดตร้าน' : 'ข้อมูลของคุณ';
+}
+
+/* ----- ค้นหาร้าน ----- */
+let timer = null;
+$('q').addEventListener('input', () => {
+  clearTimeout(timer);
+  const q = $('q').value.trim();
+  if (q.length < 2){ $('results').classList.add('hide'); $('qHint').textContent = ''; return; }
+  timer = setTimeout(async () => {
+    try {
+      $('qHint').textContent = 'กำลังค้นหา…';
+      const out = await api('getStores', { q });
+      $('qHint').textContent = out.stores.length ? '' : 'ไม่พบร้านที่ตรงกัน ลองใช้รหัสร้านหรือคำอื่น';
+      $('results').innerHTML = out.stores.map((s, i) =>
+        `<li><button type="button" data-i="${i}">${esc(s.name)}<small>${esc(s.customer)} · รหัส ${esc(s.storeId)}${s.province ? ' · ' + esc(s.province) : ''}${mineIds.has(s.storeId) ? ' · ลงทะเบียนแล้ว' : ''}</small></button></li>`).join('');
+      $('results').classList.toggle('hide', !out.stores.length);
+      $('results').onclick = ev => {
+        const b = ev.target.closest('button[data-i]'); if (!b) return;
+        pick(out.stores[+b.dataset.i]);
+      };
+    } catch (e){ $('qHint').textContent = ''; toast(e.message, true); }
+  }, 300);
+});
+
+function pick(s){
+  picked = s;
+  $('pickedText').textContent = `${s.name} (รหัส ${s.storeId})`;
+  $('picked').classList.remove('hide'); $('searchBox').classList.add('hide');
+  $('results').classList.add('hide');
+}
+$('change').onclick = () => {
+  picked = null; $('picked').classList.add('hide'); $('searchBox').classList.remove('hide');
+  $('q').value = ''; $('q').focus();
+};
+
+/* ----- บันทึก ----- */
+$('save').onclick = async () => {
+  const name = $('name').value.trim();
+  const phone = $('phone').value.replace(/\D/g, '');
+  const position = $('position').value.trim();
+  if (!name) return toast('กรุณากรอกชื่อ-สกุล', true);
+  if (!/^0\d{9}$/.test(phone)) return toast('เบอร์โทรต้องเป็นตัวเลข 10 หลัก ขึ้นต้นด้วย 0', true);
+  if (!picked) return toast('กรุณาเลือกร้าน', true);
+  const btn = $('save'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  try {
+    const out = await api('register', { name, phone, position, storeId: picked.storeId });
+    renderMine(out.registrations);
+    toast(out.mode === 'updated' ? `อัปเดตร้าน ${out.storeName} แล้ว` : `ลงทะเบียนร้าน ${out.storeName} แล้ว`);
+    $('change').click();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e){ toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = 'ลงทะเบียนร้านนี้'; }
+};
+
+$('closeBtn').onclick = () => { if (window.liff && liff.isInClient()) liff.closeWindow(); };
+
+boot();
+</script>
+</body>
+</html>
