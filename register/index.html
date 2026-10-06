@@ -51,6 +51,9 @@
   select:focus{outline:3px solid #8FD1A9;outline-offset:1px}
   .hint.bad{color:var(--warn)}
   .mine b{font-weight:500}
+  .mine li{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .del{flex:none;background:none;border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:6px 10px;font:500 14px "Noto Sans Thai",sans-serif;cursor:pointer}
+  .del.armed{background:var(--warn);color:#fff}
 </style>
 </head>
 <body>
@@ -222,9 +225,25 @@ async function loadMine(prefill){
 function renderMine(regs){
   mineIds = new Set(regs.map(r => r.storeId));
   $('cnt').textContent = regs.length;
-  $('mine').innerHTML = regs.map(r => `<li><b>${esc(r.storeName)}</b><small>${esc(meta(r))}</small></li>`).join('');
+  $('mine').innerHTML = regs.map(r => `<li><div><b>${esc(r.storeName)}</b><small>${esc(meta(r))}</small></div><button type="button" class="del" data-id="${esc(r.storeId)}">ลบ</button></li>`).join('');
   $('mineEmpty').classList.toggle('hide', regs.length > 0);
 }
+
+/* ----- ลบร้านที่ลงทะเบียน (แตะ 2 ครั้งเพื่อยืนยัน) ----- */
+$('mine').onclick = async ev => {
+  const b = ev.target.closest('button.del'); if (!b) return;
+  if (!b.dataset.arm){
+    b.dataset.arm = '1'; b.textContent = 'แตะอีกครั้งเพื่อลบ'; b.classList.add('armed');
+    setTimeout(() => { if (b.isConnected){ delete b.dataset.arm; b.textContent = 'ลบ'; b.classList.remove('armed'); } }, 4000);
+    return;
+  }
+  b.disabled = true; b.textContent = 'กำลังลบ…';
+  try {
+    const out = await api('unregister', { storeId: b.dataset.id });
+    renderMine(out.registrations);
+    toast('ลบร้านออกจากรายการแล้ว');
+  } catch (e){ b.disabled = false; b.textContent = 'ลบ'; delete b.dataset.arm; b.classList.remove('armed'); toast(e.message, true); }
+};
 
 /* ----- ค้นหาร้าน ----- */
 let timer = null;
