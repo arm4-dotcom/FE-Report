@@ -1,1 +1,477 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ตรวจร้าน — Arm Project H2 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --bg:#F3F5F7; --surface:#FFFFFF; --text:#1C2530; --text-soft:#5B6B7A;
+    --border:#DDE3E8; --accent:#2F6F5E; --accent-hover:#255A4C; --danger:#B3492B; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'IBM Plex Sans Thai', sans-serif; background:var(--bg); color:var(--text);
+    line-height:1.5; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .screen{display:none; min-height:100vh; padding:20px 16px 32px;}
+  .screen.active{display:block;}
+  .topbar{
+    display:flex; align-items:center; gap:10px; margin-bottom:18px; position:sticky; top:0;
+    background:var(--bg); padding-top:6px; padding-bottom:6px; z-index:5;
+  }
+  .topbar button.back{
+    background:none; border:1px solid var(--border); border-radius:8px; width:36px; height:36px;
+    font-size:16px; color:var(--text); cursor:pointer;
+  }
+  .topbar h1{font-size:17px; margin:0; font-weight:600;}
+  .topbar .sub{font-size:12px; color:var(--text-soft); margin-top:1px;}
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:12px;
+  }
+  .card.tappable{cursor:pointer;}
+  .card.tappable:active{background:var(--bg);}
+  .card h3{margin:0 0 4px; font-size:15px;}
+  .card p{margin:0; font-size:13px; color:var(--text-soft);}
+  .badge{
+    display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px;
+    background:#E6F0EC; color:var(--accent-hover); margin-top:6px;
+  }
+  .badge.warn{background:#FFF1E4; color:#95541D;}
+  label{display:block; font-size:13px; color:var(--text-soft); margin-bottom:6px;}
+  input[type="text"], input[type="number"], select, textarea{
+    width:100%; padding:12px 12px; border:1px solid var(--border); border-radius:var(--radius);
+    font-family:inherit; font-size:15px; color:var(--text); background:#fff; margin-bottom:14px;
+  }
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent);}
+  textarea{min-height:70px; resize:vertical;}
+  button.primary{
+    background:var(--accent); color:#fff; border:none; border-radius:var(--radius); padding:14px 18px;
+    font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; width:100%;
+  }
+  button.primary:disabled{background:#A7B4BC;}
+  button.primary:active{background:var(--accent-hover);}
+  .error-msg{color:var(--danger); font-size:13px; margin:-6px 0 14px; display:none;}
+  .empty-state{color:var(--text-soft); font-size:14px; text-align:center; padding:40px 12px;}
+  .photo-input-wrap{margin-bottom:14px;}
+  .photo-preview{
+    width:100%; max-height:240px; object-fit:contain; border-radius:var(--radius);
+    border:1px solid var(--border); margin-top:8px; display:none;
+  }
+  .center-loading{display:flex; align-items:center; justify-content:center; min-height:80vh; color:var(--text-soft); font-size:14px;}
+  .confirm-icon{font-size:48px; text-align:center; margin-bottom:8px;}
+  .hidden{display:none !important;}
+  .notice{padding-top:18vh; text-align:center;}
+  .notice h1{font-size:18px; margin:0 0 8px;}
+  .notice p{color:var(--text-soft); font-size:14px; margin:0 0 20px;}
+</style>
+</head>
+<body>
 
+<!-- ============ SCREEN: LOADING ============ -->
+<div id="screenLoading" class="screen active">
+  <div class="center-loading" id="loadingText">กำลังเปิดระบบ…</div>
+</div>
+
+<!-- ============ SCREEN: ERROR (เปิด LIFF / โหลดข้อมูลไม่สำเร็จ) ============ -->
+<div id="screenError" class="screen">
+  <div class="notice">
+    <div class="confirm-icon">⚠️</div>
+    <h1>เปิดระบบไม่สำเร็จ</h1>
+    <p id="errorText"></p>
+    <button class="primary" onclick="location.reload()">ลองใหม่</button>
+  </div>
+</div>
+
+<!-- ============ SCREEN: ยังไม่ได้ลงทะเบียนร้าน ============ -->
+<div id="screenNotRegistered" class="screen">
+  <div class="notice">
+    <div class="confirm-icon">📝</div>
+    <h1>ยังไม่พบร้านที่ลงทะเบียนไว้</h1>
+    <p>กรุณาลงทะเบียนร้านที่คุณดูแลก่อน แล้วกลับมาเปิดหน้านี้อีกครั้ง</p>
+    <button class="primary" onclick="openRegisterPage()">ไปหน้าลงทะเบียน</button>
+  </div>
+</div>
+
+<!-- ============ SCREEN 2: เลือกร้าน ============ -->
+<div id="screenStoreSelect" class="screen">
+  <div class="topbar">
+    <div><h1>เลือกร้าน</h1><div class="sub" id="staffNameLabel"></div></div>
+  </div>
+  <div id="storeListWrap"><div class="empty-state">กำลังโหลด…</div></div>
+</div>
+
+<!-- ============ SCREEN 3: รายการงานวันนี้ ============ -->
+<div id="screenTaskList" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goToScreen('screenStoreSelect')">‹</button>
+    <div><h1 id="taskListStoreLabel">รายการงานวันนี้</h1><div class="sub" id="taskListAccountLabel"></div></div>
+  </div>
+  <div id="taskGroupWrap"><div class="empty-state">กำลังโหลด…</div></div>
+</div>
+
+<!-- ============ SCREEN 4: รายการย่อยในกลุ่ม ============ -->
+<div id="screenGroupItems" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goToScreen('screenTaskList')">‹</button>
+    <h1 id="groupItemsTitle">รายการ</h1>
+  </div>
+  <div id="groupItemsWrap"></div>
+</div>
+
+<!-- ============ SCREEN 5: ฟอร์มบันทึกผล ============ -->
+<div id="screenForm" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goToScreen('screenGroupItems')">‹</button>
+    <h1 id="formItemTitle">บันทึกผล</h1>
+  </div>
+
+  <div class="card">
+    <!-- ช่องตัวเลข: โชว์เมื่อ inputType เป็น 'number' หรือ 'both' -->
+    <div id="formNumberField">
+      <label for="formAnswerNumber" id="formNumberLabel">จำนวน</label>
+      <input type="number" id="formAnswerNumber" inputmode="decimal">
+    </div>
+    <!-- dropdown เหตุผล: โชว์เมื่อ inputType เป็น 'dropdown' หรือ 'both' -->
+    <div id="formDropdownField" class="hidden">
+      <label for="formReasonSelect">เลือกตัวเลือก</label>
+      <select id="formReasonSelect"><option value="">— เลือก —</option></select>
+    </div>
+
+    <div class="photo-input-wrap">
+      <label id="formPhotoLabel">แนบรูป</label>
+      <input type="file" id="formPhotoInput" accept="image/*" capture="environment" onchange="onPhotoSelected()">
+      <img id="formPhotoPreview" class="photo-preview">
+    </div>
+
+    <label for="formRemark">หมายเหตุ (ถ้ามี)</label>
+    <textarea id="formRemark" placeholder="พิมพ์หมายเหตุเพิ่มเติม…"></textarea>
+
+    <button class="primary" id="formSubmitBtn" onclick="handleSubmitForm()">บันทึกผล</button>
+    <p class="error-msg" id="formError"></p>
+  </div>
+</div>
+
+<!-- ============ SCREEN 6: ยืนยัน ============ -->
+<div id="screenConfirm" class="screen">
+  <div style="padding-top:20vh; text-align:center;">
+    <div class="confirm-icon">✅</div>
+    <h1 style="font-size:18px;">บันทึกสำเร็จ</h1>
+    <p style="color:var(--text-soft); font-size:14px;" id="confirmSubtext"></p>
+    <button class="primary" style="margin-top:20px;" onclick="backToTaskList()">กลับไปรายการงานวันนี้</button>
+  </div>
+</div>
+
+<script>
+  // ========== CONFIG ==========
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzWVdPzzu9oLoof5YZ-ChSBk1rW-ctCjBeBOtS7UjGokvUxg2hAIJ_jnadrODbC4FP3eA/exec';
+  // LIFF ID ของ app ตัวที่ 2 (Endpoint = https://arm4-dotcom.github.io/FE-Report/transaction/) ใน channel 2011853037
+  // รูปแบบ: 2011853037-xxxxxxxx — ต้องแทนค่านี้ก่อน deploy
+  const LIFF_ID = '2011853037-iLtXiIUI';
+  // หน้าลงทะเบียนกลาง (LIFF ID ของหน้า register)
+  const REGISTER_LIFF_URL = 'https://liff.line.me/2011853037-5NWPB922';
+
+  // ========== STATE ==========
+  // หมายเหตุ: ไม่เก็บ lineUserId ฝั่งหน้าเว็บอีกแล้ว — เซิร์ฟเวอร์ได้ LineID จาก ID token เอง
+  let state = {
+    staffName: '',
+    storeId: null,
+    storeName: '',
+    account: '',
+    channel: '',
+    groups: [],
+    currentGroup: null,
+    currentItem: null,
+    currentPhotoBase64: null,
+    currentPhotoMime: null
+  };
+
+  // ========== HELPERS ==========
+  // escape ข้อความจากชีทก่อนใส่ใน innerHTML
+  function esc(v){
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function goToScreen(id){
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function showError(msg){
+    document.getElementById('errorText').textContent = msg;
+    goToScreen('screenError');
+  }
+
+  function openRegisterPage(){
+    if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()){
+      liff.openWindow({ url: REGISTER_LIFF_URL, external: false });
+    } else {
+      window.location.href = REGISTER_LIFF_URL;
+    }
+  }
+
+  // ชนิด input — ใช้ helper 2 ตัวนี้แทนการเทียบ === 'dropdown' / === 'number' ตรงๆ ทุกที่
+  function showsNumber_(inputType){ return inputType === 'number' || inputType === 'both'; }
+  function showsDropdown_(inputType){ return inputType === 'dropdown' || inputType === 'both'; }
+
+  // ========== AUTH / API CALL ==========
+  // ID token หมดอายุได้ (ราว 1 ชม.) — ถ้าเซิร์ฟเวอร์ตอบ authError ให้ login ใหม่แล้วกลับมาหน้าเดิม
+  function relogin(){
+    try{ liff.logout(); }catch(e){}
+    liff.login({ redirectUri: window.location.href });
+  }
+
+  async function callApi(action, payload){
+    const idToken = liff.getIDToken();
+    if (!idToken){
+      relogin();
+      throw new Error('เซสชันหมดอายุ กำลังเข้าสู่ระบบใหม่…');
+    }
+    const body = Object.assign({}, payload || {}, { action: action, idToken: idToken });
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ' + res.status + ')');
+    const data = await res.json();
+    if (data && data.authError){
+      relogin();
+      throw new Error('เซสชันหมดอายุ กำลังเข้าสู่ระบบใหม่…');
+    }
+    return data;
+  }
+
+  // ========== INIT ==========
+  window.addEventListener('DOMContentLoaded', init);
+
+  async function init(){
+    if (!LIFF_ID || LIFF_ID.indexOf('ใส่') !== -1){
+      showError('ยังไม่ได้ตั้งค่า LIFF ID ในหน้านี้');
+      return;
+    }
+    try{
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()){ liff.login({ redirectUri: window.location.href }); return; }
+      if (!liff.getIDToken()){
+        showError('ไม่ได้รับ ID token — ตรวจสอบว่า LIFF app ตั้ง scope: profile และ openid ไว้แล้ว');
+        return;
+      }
+      await afterLogin();
+    } catch(err){
+      showError('เปิด LIFF ไม่สำเร็จ: ' + (err.message || err));
+    }
+  }
+
+  async function afterLogin(){
+    try{
+      const result = await callApi('getStores', {});
+      if (!result.success) throw new Error(result.error || 'โหลดร้านไม่สำเร็จ');
+      state.staffName = result.staffName || '';
+      const stores = result.stores || [];
+      if (stores.length === 0){
+        goToScreen('screenNotRegistered');
+        return;
+      }
+      renderStoreList(stores);
+      goToScreen('screenStoreSelect');
+    } catch(err){
+      showError('โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err));
+    }
+  }
+
+  // ========== SCREEN 2: เลือกร้าน ==========
+  function renderStoreList(stores){
+    document.getElementById('staffNameLabel').textContent = state.staffName ? ('สวัสดีคุณ ' + state.staffName) : '';
+    const wrap = document.getElementById('storeListWrap');
+    wrap.innerHTML = stores.map((s, i) => `
+      <div class="card tappable" onclick="selectStore(${i})">
+        <h3>${esc(s.storeName || s.storeId)}</h3>
+        <p>${esc(s.account)} · ${esc(s.province)}</p>
+      </div>
+    `).join('');
+    window._stores = stores;
+  }
+
+  async function selectStore(idx){
+    const s = window._stores[idx];
+    state.storeId = s.storeId;
+    state.storeName = s.storeName;
+    goToScreen('screenLoading');
+    document.getElementById('loadingText').textContent = 'กำลังโหลดรายการงาน…';
+    await loadTaskList();
+  }
+
+  // ========== SCREEN 3: รายการงานวันนี้ ==========
+  async function loadTaskList(){
+    try{
+      const result = await callApi('getTodayTasks', { storeId: state.storeId });
+      if (!result.success) throw new Error(result.error || 'โหลดรายการงานไม่สำเร็จ');
+      state.account = result.account;
+      state.channel = result.channel;
+      state.groups = result.groups || [];
+      renderTaskGroups();
+      goToScreen('screenTaskList');
+    } catch(err){
+      alert('โหลดรายการงานไม่สำเร็จ: ' + (err.message || err));
+      goToScreen('screenStoreSelect');
+    }
+  }
+
+  function renderTaskGroups(){
+    document.getElementById('taskListStoreLabel').textContent = state.storeName || state.storeId;
+    document.getElementById('taskListAccountLabel').textContent = state.account + (state.channel ? ' · ' + state.channel : '');
+    const wrap = document.getElementById('taskGroupWrap');
+    if (state.groups.length === 0){
+      wrap.innerHTML = '<div class="empty-state">ไม่มีงานให้ตรวจวันนี้สำหรับร้านนี้</div>';
+      return;
+    }
+    wrap.innerHTML = state.groups.map((g, i) => `
+      <div class="card tappable" onclick="openGroup(${i})">
+        <h3>${esc(g.trackname)}</h3>
+        <p>${g.items.length} รายการ</p>
+      </div>
+    `).join('');
+  }
+
+  // ========== SCREEN 4: รายการย่อยในกลุ่ม ==========
+  function openGroup(idx){
+    state.currentGroup = state.groups[idx];
+    document.getElementById('groupItemsTitle').textContent = state.currentGroup.trackname;
+    const wrap = document.getElementById('groupItemsWrap');
+    wrap.innerHTML = state.currentGroup.items.map((it, i) => `
+      <div class="card tappable" onclick="openItemForm(${i})">
+        <h3>${esc(it.itemLabel)}${it.barcode ? ' (' + esc(it.barcode) + ')' : ''}</h3>
+        <p>${esc(it.kpiNameTh)}</p>
+        ${it.photoRequired ? '<span class="badge warn">บังคับแนบรูป</span>' : ''}
+      </div>
+    `).join('');
+    goToScreen('screenGroupItems');
+  }
+
+  // ========== SCREEN 5: ฟอร์มบันทึกผล ==========
+  async function openItemForm(idx){
+    state.currentItem = state.currentGroup.items[idx];
+    state.currentPhotoBase64 = null;
+    state.currentPhotoMime = null;
+    const it = state.currentItem;
+
+    document.getElementById('formItemTitle').textContent = it.itemLabel;
+    document.getElementById('formAnswerNumber').value = '';
+    document.getElementById('formRemark').value = '';
+    document.getElementById('formPhotoInput').value = '';
+    document.getElementById('formPhotoPreview').style.display = 'none';
+    document.getElementById('formError').style.display = 'none';
+    document.getElementById('formPhotoLabel').textContent = it.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
+    // label ของช่อง number เปลี่ยนตาม KPI (เช่น 'ราคา' สำหรับ S1/P2, 'จำนวน' สำหรับ S2/V1/V2 ฯลฯ)
+    document.getElementById('formNumberLabel').textContent = it.numberLabel || 'จำนวน';
+
+    const showNumber = showsNumber_(it.inputType);
+    const showDropdown = showsDropdown_(it.inputType);
+    document.getElementById('formNumberField').classList.toggle('hidden', !showNumber);
+    document.getElementById('formDropdownField').classList.toggle('hidden', !showDropdown);
+
+    if (showDropdown){
+      const sel = document.getElementById('formReasonSelect');
+      sel.innerHTML = '<option value="">กำลังโหลด…</option>';
+      goToScreen('screenForm');
+      try{
+        const result = await callApi('getReasons', { kpiId: it.kpiId });
+        sel.innerHTML = '<option value="">— เลือก —</option>' +
+          (result.items || []).map(r => `<option value="${esc(r.reasonId)}">${esc(r.reasonTh)}</option>`).join('');
+      } catch(err){
+        sel.innerHTML = '<option value="">โหลดตัวเลือกไม่สำเร็จ</option>';
+      }
+    } else {
+      goToScreen('screenForm');
+    }
+  }
+
+  function onPhotoSelected(){
+    const fileInput = document.getElementById('formPhotoInput');
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      state.currentPhotoMime = file.type || 'image/jpeg';
+      state.currentPhotoBase64 = dataUrl.split(',')[1];
+      const preview = document.getElementById('formPhotoPreview');
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleSubmitForm(){
+    const it = state.currentItem;
+    const errEl = document.getElementById('formError');
+    const btn = document.getElementById('formSubmitBtn');
+    errEl.style.display = 'none';
+
+    // ไม่ส่ง lineUserId / staffName / storeName — เซิร์ฟเวอร์ดึงจาก ID token + Lineregister เอง
+    const payload = {
+      storeId: state.storeId,
+      configId: it.configId,
+      remark: document.getElementById('formRemark').value.trim()
+    };
+
+    const showNumber = showsNumber_(it.inputType);
+    const showDropdown = showsDropdown_(it.inputType);
+
+    // เช็คช่องตัวเลขก่อน (ถ้ามี) แล้วค่อยเช็ค dropdown (ถ้ามี) — โหมด 'both' ต้องผ่านทั้งคู่
+    if (showNumber){
+      const val = document.getElementById('formAnswerNumber').value;
+      if (val === ''){
+        errEl.textContent = (it.numberLabel || 'ค่า') + ': กรอกค่าก่อน'; errEl.style.display = 'block'; return;
+      }
+      payload.answerValue = val;
+    }
+    if (showDropdown){
+      payload.reasonId = document.getElementById('formReasonSelect').value;
+      if (!payload.reasonId){
+        errEl.textContent = 'เลือกตัวเลือกก่อน'; errEl.style.display = 'block'; return;
+      }
+    }
+
+    if (it.photoRequired && !state.currentPhotoBase64){
+      errEl.textContent = 'รายการนี้บังคับแนบรูป'; errEl.style.display = 'block'; return;
+    }
+    if (state.currentPhotoBase64){
+      payload.photoBase64 = state.currentPhotoBase64;
+      payload.photoMimeType = state.currentPhotoMime;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก…';
+    try{
+      const result = await callApi('submitTransaction', payload);
+      if (!result.success) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
+      document.getElementById('confirmSubtext').textContent = it.itemLabel + ' · ' + it.kpiNameTh;
+      goToScreen('screenConfirm');
+    } catch(err){
+      errEl.textContent = 'บันทึกไม่สำเร็จ: ' + (err.message || err);
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'บันทึกผล';
+    }
+  }
+
+  // ========== SCREEN 6 -> กลับไป Screen 3 ==========
+  async function backToTaskList(){
+    goToScreen('screenLoading');
+    document.getElementById('loadingText').textContent = 'กำลังโหลดรายการงาน…';
+    await loadTaskList();
+  }
+</script>
+
+</body>
+</html>
