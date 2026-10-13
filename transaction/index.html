@@ -62,6 +62,7 @@
     width:100%; max-height:240px; object-fit:contain; border-radius:var(--radius);
     border:1px solid var(--border); margin-top:8px; display:none;
   }
+  .photo-status{font-size:12px; color:var(--text-soft); margin:6px 0 0; min-height:18px;}
   .center-loading{display:flex; align-items:center; justify-content:center; min-height:80vh; color:var(--text-soft); font-size:14px;}
   .confirm-icon{font-size:48px; text-align:center; margin-bottom:8px;}
   .hidden{display:none !important;}
@@ -145,6 +146,7 @@
     <div class="photo-input-wrap">
       <label id="formPhotoLabel">แนบรูป</label>
       <input type="file" id="formPhotoInput" accept="image/*" capture="environment" onchange="onPhotoSelected()">
+      <p class="photo-status" id="formPhotoStatus"></p>
       <img id="formPhotoPreview" class="photo-preview">
     </div>
 
@@ -175,6 +177,10 @@
   // หน้าลงทะเบียนกลาง (LIFF ID ของหน้า register)
   const REGISTER_LIFF_URL = 'https://liff.line.me/2011853037-5NWPB922';
 
+  // ย่อรูปบนเครื่องพนักงานก่อนอัปโหลด: ด้านที่ยาวที่สุดไม่เกิน PHOTO_MAX_EDGE px, บีบเป็น JPEG
+  const PHOTO_MAX_EDGE = 1600;
+  const PHOTO_JPEG_QUALITY = 0.75;
+
   // ========== STATE ==========
   // หมายเหตุ: ไม่เก็บ lineUserId ฝั่งหน้าเว็บอีกแล้ว — เซิร์ฟเวอร์ได้ LineID จาก ID token เอง
   let state = {
@@ -187,7 +193,9 @@
     currentGroup: null,
     currentItem: null,
     currentPhotoBase64: null,
-    currentPhotoMime: null
+    currentPhotoMime: null,
+    photoProcessing: false, // true ระหว่างย่อรูป — กันกดบันทึกก่อนรูปพร้อม
+    photoSeq: 0             // เลขรอบการเลือกรูป กันผลของรอบเก่าทับรอบใหม่
   };
 
   // ========== HELPERS ==========
@@ -361,6 +369,8 @@
     state.currentItem = state.currentGroup.items[idx];
     state.currentPhotoBase64 = null;
     state.currentPhotoMime = null;
+    state.photoProcessing = false;
+    state.photoSeq++; // ยกเลิกผลของการย่อรูปที่ยังค้างอยู่จากฟอร์มก่อนหน้า
     const it = state.currentItem;
 
     document.getElementById('formItemTitle').textContent = it.itemLabel;
@@ -368,6 +378,7 @@
     document.getElementById('formRemark').value = '';
     document.getElementById('formPhotoInput').value = '';
     document.getElementById('formPhotoPreview').style.display = 'none';
+    document.getElementById('formPhotoStatus').textContent = '';
     document.getElementById('formError').style.display = 'none';
     document.getElementById('formPhotoLabel').textContent = it.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
     // label ของช่อง number เปลี่ยนตาม KPI (เช่น 'ราคา' สำหรับ S1/P2, 'จำนวน' สำหรับ S2/V1/V2 ฯลฯ)
@@ -394,20 +405,108 @@
     }
   }
 
-  function onPhotoSelected(){
-    const fileInput = document.getElementById('formPhotoInput');
-    const file = fileInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      state.currentPhotoMime = file.type || 'image/jpeg';
+  // ---------- PHOTO: ย่อรูปบนเครื่องก่อนส่ง ----------
+
+  /** โหลดไฟล์รูปเป็นภาพที่วาดลง canvas ได้ — ให้เบราว์เซอร์หมุนภาพตาม EXIF ให้ (กันรูปแนวตั้งกลายเป็นแนวนอน) */
+  function loadImageForResize_(file){
+    if (typeof createImageBitmap === 'function'){
+      return createImageBitmap(file, { imageOrientation: 'from-image' })
+        .catch(() => loadImageViaElement_(file));
+    }
+    return loadImageViaElement_(file);
+  }
+
+  function loadImageViaElement_(file){
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('โหลดรูปไม่สำเร็จ')); };
+      img.src = url;
+    });
+  }
+
+  /** ย่อรูปให้ด้านยาวสุดไม่เกิน PHOTO_MAX_EDGE แล้วบีบเป็น JPEG — คืน { dataUrl, width, height } */
+  async function shrinkPhoto_(file){
+    const src = await loadImageForResize_(file);
+    const sw = src.naturalWidth || src.width;
+    const sh = src.naturalHeight || src.height;
+    if (!sw || !sh) throw new Error('อ่านขนาดรูปไม่ได้');
+
+    const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(sw, sh));
+    const w = Math.max(1, Math.round(sw * scale));
+    const h = Math.max(1, Math.round(sh * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF'; // กันพื้นหลังดำ ถ้าเป็น PNG ที่มีส่วนโปร่งใส
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(src, 0, 0, w, h);
+    if (typeof src.close === 'function') src.close(); // คืนหน่วยความจำของ ImageBitmap
+
+    return { dataUrl: canvas.toDataURL('image/jpeg', PHOTO_JPEG_QUALITY), width: w, height: h };
+  }
+
+  function readFileAsDataUrl_(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('อ่านไฟล์รูปไม่สำเร็จ'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function formatKb_(base64){
+    const kb = Math.round(base64.length * 0.75 / 1024);
+    return kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB';
+  }
+
+  async function onPhotoSelected(){
+    const file = document.getElementById('formPhotoInput').files[0];
+    const preview = document.getElementById('formPhotoPreview');
+    const statusEl = document.getElementById('formPhotoStatus');
+    const seq = ++state.photoSeq;
+
+    state.currentPhotoBase64 = null;
+    state.currentPhotoMime = null;
+    if (!file){
+      state.photoProcessing = false;
+      preview.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    state.photoProcessing = true;
+    statusEl.textContent = 'กำลังย่อรูป…';
+    try{
+      let dataUrl, mime, note;
+      try{
+        const shrunk = await shrinkPhoto_(file);
+        dataUrl = shrunk.dataUrl;
+        mime = 'image/jpeg';
+        note = 'แนบรูปแล้ว (' + shrunk.width + '×' + shrunk.height + ' · ' + formatKb_(dataUrl.split(',')[1]) + ')';
+      } catch(shrinkErr){
+        // ย่อไม่สำเร็จ (เช่น เครื่องเก่า/รูปที่เบราว์เซอร์ถอดรหัสไม่ได้) — ส่งรูปต้นฉบับแทน ไม่บล็อกการบันทึก
+        dataUrl = await readFileAsDataUrl_(file);
+        mime = file.type || 'image/jpeg';
+        note = 'แนบรูปแล้ว (ใช้รูปต้นฉบับ · ' + formatKb_(dataUrl.split(',')[1]) + ')';
+      }
+
+      if (seq !== state.photoSeq) return; // ผู้ใช้เลือกรูปใหม่/เปลี่ยนหน้าไปแล้ว ทิ้งผลรอบนี้
       state.currentPhotoBase64 = dataUrl.split(',')[1];
-      const preview = document.getElementById('formPhotoPreview');
+      state.currentPhotoMime = mime;
       preview.src = dataUrl;
       preview.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+      statusEl.textContent = note;
+    } catch(err){
+      if (seq !== state.photoSeq) return;
+      preview.style.display = 'none';
+      statusEl.textContent = 'แนบรูปไม่สำเร็จ: ' + (err.message || err) + ' — ลองถ่ายหรือเลือกรูปใหม่';
+    } finally {
+      if (seq === state.photoSeq) state.photoProcessing = false;
+    }
   }
 
   async function handleSubmitForm(){
@@ -415,6 +514,10 @@
     const errEl = document.getElementById('formError');
     const btn = document.getElementById('formSubmitBtn');
     errEl.style.display = 'none';
+
+    if (state.photoProcessing){
+      errEl.textContent = 'กำลังย่อรูป รอสักครู่แล้วกดบันทึกอีกครั้ง'; errEl.style.display = 'block'; return;
+    }
 
     // ไม่ส่ง lineUserId / staffName / storeName — เซิร์ฟเวอร์ดึงจาก ID token + Lineregister เอง
     const payload = {
