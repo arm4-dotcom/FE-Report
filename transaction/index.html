@@ -3,14 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A55C4">
 <title>ตรวจร้าน — Arm Project H2 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   :root{
-    --bg:#F3F5F7; --surface:#FFFFFF; --text:#1C2530; --text-soft:#5B6B7A;
-    --border:#DDE3E8; --accent:#2F6F5E; --accent-hover:#255A4C; --danger:#B3492B; --radius:10px;
+    --bg:#F1F6FD; --surface:#FFFFFF; --text:#12233D; --text-soft:#5F7390;
+    --border:#D9E3F2; --accent:#1F5FD1; --accent-hover:#174CAB; --accent-soft:#E8F0FD;
+    --accent-grad:linear-gradient(135deg,#1A55C4 0%,#2F7BEA 100%);
+    --danger:#C2412D; --radius:12px;
+    --shadow:0 1px 2px rgba(18,35,61,.05), 0 4px 14px rgba(31,95,209,.07);
   }
   *{box-sizing:border-box;}
   body{
@@ -20,28 +24,61 @@
   .screen{display:none; min-height:100vh; padding:20px 16px 32px;}
   .screen.active{display:block;}
   .topbar{
-    display:flex; align-items:center; gap:10px; margin-bottom:18px; position:sticky; top:0;
-    background:var(--bg); padding-top:6px; padding-bottom:6px; z-index:5;
+    display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:5;
+    margin:-20px -16px 18px; padding:14px 16px;
+    background:var(--accent-grad); color:#fff;
+    box-shadow:0 2px 10px rgba(23,76,171,.25);
   }
   .topbar button.back{
-    background:none; border:1px solid var(--border); border-radius:8px; width:36px; height:36px;
-    font-size:16px; color:var(--text); cursor:pointer;
+    background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); border-radius:10px;
+    width:38px; height:38px; font-size:20px; line-height:1; color:#fff; cursor:pointer; flex:none;
   }
-  .topbar h1{font-size:17px; margin:0; font-weight:600;}
-  .topbar .sub{font-size:12px; color:var(--text-soft); margin-top:1px;}
+  .topbar button.back:active{background:rgba(255,255,255,.32);}
+  .topbar h1{font-size:17px; margin:0; font-weight:600; color:#fff;}
+  .topbar .sub{font-size:12px; color:rgba(255,255,255,.85); margin-top:1px;}
   .card{
     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:16px; margin-bottom:12px;
+    padding:16px; margin-bottom:12px; box-shadow:var(--shadow);
   }
-  .card.tappable{cursor:pointer;}
-  .card.tappable:active{background:var(--bg);}
-  .card h3{margin:0 0 4px; font-size:15px;}
+  .card.tappable{cursor:pointer; transition:transform .06s ease, border-color .12s ease;}
+  .card.tappable:active{background:var(--accent-soft); border-color:var(--accent); transform:scale(.995);}
+  .card h3{margin:0 0 4px; font-size:15px; color:var(--text);}
   .card p{margin:0; font-size:13px; color:var(--text-soft);}
   .badge{
-    display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px;
-    background:#E6F0EC; color:var(--accent-hover); margin-top:6px;
+    display:inline-block; font-size:12px; padding:2px 10px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent-hover); margin-top:6px; font-weight:500;
   }
   .badge.warn{background:#FFF1E4; color:#95541D;}
+  .badge.muted{background:#EEF2F8; color:#4B5E78;}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .tags .badge{margin-top:0;}
+  mark{background:#FFE9A8; color:inherit; border-radius:3px; padding:0 1px;}
+
+  /* ---------- หน้าค้นหาสินค้า (แจ้งหน้าร้าน) ---------- */
+  .search-panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .search-field{position:relative; margin-bottom:12px;}
+  .search-field input[type="text"]{
+    margin:0; padding-left:42px; background:var(--bg); border-color:transparent;
+  }
+  .search-field input[type="text"]:focus{background:#fff;}
+  .search-icon{
+    position:absolute; left:13px; top:50%; transform:translateY(-50%); width:20px; height:20px;
+    display:flex; align-items:center; justify-content:center; pointer-events:none;
+  }
+  .filter-label{font-size:12px; color:var(--text-soft); margin:0 0 4px 2px; font-weight:500;}
+  .search-panel select{margin-bottom:0; background:var(--bg); border-color:transparent;}
+  .search-hint{font-size:12px; color:var(--text-soft); margin:10px 2px 0; min-height:16px;}
+  .check-circle{
+    width:76px; height:76px; border-radius:50%; margin:0 auto 14px; display:flex; align-items:center; justify-content:center;
+    background:var(--accent-grad); color:#fff; font-size:38px; font-weight:700;
+    box-shadow:0 8px 20px rgba(31,95,209,.28);
+  }
+  .product-summary{
+    border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:10px; padding:10px 12px;
+  }
   label{display:block; font-size:13px; color:var(--text-soft); margin-bottom:6px;}
   input[type="text"], input[type="number"], select, textarea{
     width:100%; padding:12px 12px; border:1px solid var(--border); border-radius:var(--radius);
@@ -50,10 +87,11 @@
   input:focus, select:focus, textarea:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent);}
   textarea{min-height:70px; resize:vertical;}
   button.primary{
-    background:var(--accent); color:#fff; border:none; border-radius:var(--radius); padding:14px 18px;
+    background:var(--accent-grad); color:#fff; border:none; border-radius:var(--radius); padding:14px 18px;
     font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; width:100%;
+    box-shadow:0 4px 12px rgba(31,95,209,.28);
   }
-  button.primary:disabled{background:#A7B4BC;}
+  button.primary:disabled{background:#A9B8CE; box-shadow:none;}
   button.primary:active{background:var(--accent-hover);}
   button.secondary-btn{
     background:#fff; color:var(--text); border:1px solid var(--border); border-radius:var(--radius);
@@ -179,10 +217,18 @@
     <button class="back" onclick="backFromProductSearch()">‹</button>
     <div><h1 id="productSearchTitle">ค้นหาสินค้า</h1><div class="sub" id="productSearchSub"></div></div>
   </div>
-  <div class="card">
-    <label for="productSearchInput">ค้นหาสินค้า (ชื่อ / บาร์โค้ด / SKU)</label>
-    <input type="text" id="productSearchInput" placeholder="พิมพ์อย่างน้อย 2 ตัวอักษร" oninput="onProductSearchInput()" autocomplete="off">
-    <p class="photo-status" id="productSearchHint" style="margin:-6px 0 0;"></p>
+  <div class="search-panel">
+    <div class="search-field">
+      <span class="search-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F5FD1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      </span>
+      <input type="text" id="productSearchInput" placeholder="ค้นหาชื่อ / บาร์โค้ด / SKU" oninput="onProductSearchInput()" autocomplete="off" enterkeyhint="search">
+    </div>
+    <div class="filter-label">แบรนด์</div>
+    <select id="brandFilterSelect" onchange="onBrandFilterChange()">
+      <option value="">ทุกแบรนด์</option>
+    </select>
+    <p class="search-hint" id="productSearchHint">พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์</p>
   </div>
   <div id="productSearchResults"></div>
 </div>
@@ -222,7 +268,7 @@
 <!-- ============ SCREEN 6: ยืนยัน ============ -->
 <div id="screenConfirm" class="screen">
   <div style="padding-top:20vh; text-align:center;">
-    <div class="confirm-icon">✅</div>
+    <div class="check-circle">✓</div>
     <h1 style="font-size:18px;">บันทึกสำเร็จ</h1>
     <p style="color:var(--text-soft); font-size:14px;" id="confirmSubtext"></p>
     <button class="secondary-btn hidden" id="confirmAgainBtn" style="margin-top:20px;" onclick="selfReportAnother()">แจ้งสินค้าอื่นต่อ</button>
@@ -263,7 +309,8 @@
     currentSelfGroup: null,
     currentSelfKpi: null,
     currentProduct: null,
-    searchSeq: 0            // เลขรอบการค้นหาสินค้า กันผลของรอบเก่าทับรอบใหม่
+    searchSeq: 0,           // เลขรอบการค้นหาสินค้า กันผลของรอบเก่าทับรอบใหม่
+    brands: null            // รายชื่อแบรนด์ (โหลดครั้งเดียวต่อการเปิดหน้า) — null = ยังไม่ได้โหลด
   };
 
   // ========== HELPERS ==========
@@ -679,10 +726,42 @@
     document.getElementById('productSearchTitle').textContent = 'ค้นหาสินค้า';
     document.getElementById('productSearchSub').textContent = kpi.kpiNameTh;
     document.getElementById('productSearchInput').value = '';
-    document.getElementById('productSearchHint').textContent = '';
+    document.getElementById('brandFilterSelect').value = '';
+    document.getElementById('productSearchHint').textContent = 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์';
     document.getElementById('productSearchResults').innerHTML = '';
     window._productResults = [];
     goToScreen('screenProductSearch');
+    loadBrandsOnce_();
+  }
+
+  /** โหลดรายชื่อแบรนด์ครั้งเดียว แล้วเติมลง dropdown — ถ้าโหลดไม่ได้ก็ยังค้นหาด้วยคำค้นได้ตามปกติ */
+  async function loadBrandsOnce_(){
+    if (state.brands === null){
+      try{
+        const result = await callApi('getBrands', {});
+        state.brands = (result && result.success && Array.isArray(result.brands)) ? result.brands : [];
+      } catch(err){
+        state.brands = []; // ไม่บล็อกการค้นหา แค่ไม่มีตัวกรองแบรนด์
+      }
+    }
+    fillBrandSelect_();
+  }
+
+  function fillBrandSelect_(){
+    const sel = document.getElementById('brandFilterSelect');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">ทุกแบรนด์</option>' +
+      (state.brands || []).map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    sel.value = current;
+    // ไม่มีรายชื่อแบรนด์ (เช่นโหลดไม่ได้) -> ซ่อนตัวกรอง
+    const hide = !state.brands || state.brands.length === 0;
+    sel.previousElementSibling.classList.toggle('hidden', hide); // ป้าย "แบรนด์"
+    sel.classList.toggle('hidden', hide);
+  }
+
+  function onBrandFilterChange(){
+    clearTimeout(productSearchDebounce);
+    runProductSearch(); // เปลี่ยนแบรนด์ -> ค้นหาใหม่ทันที ไม่ต้องรอ debounce
   }
 
   function backFromProductSearch(){
@@ -698,26 +777,34 @@
 
   async function runProductSearch(){
     const q = document.getElementById('productSearchInput').value.trim();
+    const brand = document.getElementById('brandFilterSelect').value;
     const hint = document.getElementById('productSearchHint');
     const wrap = document.getElementById('productSearchResults');
     const seq = ++state.searchSeq;
 
-    if (q.length < 2){
+    // ต้องมีอย่างน้อยอย่างใดอย่างหนึ่ง: คำค้น >= 2 ตัวอักษร หรือเลือกแบรนด์
+    if (q.length < 2 && !brand){
       wrap.innerHTML = '';
-      hint.textContent = q.length === 0 ? '' : 'พิมพ์อย่างน้อย 2 ตัวอักษร';
+      hint.textContent = q.length === 0
+        ? 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์'
+        : 'พิมพ์อย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์';
+      return;
+    }
+    if (q.length === 1){ // พิมพ์ได้แค่ 1 ตัวอักษรแต่เลือกแบรนด์ไว้ — รอให้พิมพ์ครบก่อน ไม่ส่งคำค้นสั้นเกินไป
+      hint.textContent = 'พิมพ์อย่างน้อย 2 ตัวอักษร';
       return;
     }
 
     hint.textContent = 'กำลังค้นหา…';
     try{
-      const result = await callApi('searchProducts', { query: q });
+      const result = await callApi('searchProducts', { query: q, brand: brand });
       if (seq !== state.searchSeq) return; // มีการค้นหาใหม่กว่าแล้ว ทิ้งผลรอบนี้
       if (!result.success){
         wrap.innerHTML = '';
         hint.textContent = result.error || 'ค้นหาไม่สำเร็จ';
         return;
       }
-      renderProductResults(result);
+      renderProductResults(result, q);
     } catch(err){
       if (seq !== state.searchSeq) return;
       wrap.innerHTML = '';
@@ -725,28 +812,41 @@
     }
   }
 
-  function renderProductResults(result){
+  /** escape แล้วไฮไลต์คำค้น (ตัวพิมพ์เล็ก/ใหญ่ไม่สำคัญ) เฉพาะตำแหน่งแรกที่เจอ — ถ้าไม่เจอตรงๆ แสดงข้อความปกติ */
+  function highlight_(text, q){
+    const s = String(text === null || text === undefined ? '' : text);
+    if (!q) return esc(s);
+    const at = s.toLowerCase().indexOf(q.toLowerCase());
+    if (at === -1) return esc(s);
+    return esc(s.slice(0, at)) + '<mark>' + esc(s.slice(at, at + q.length)) + '</mark>' + esc(s.slice(at + q.length));
+  }
+
+  function renderProductResults(result, q){
     const hint = document.getElementById('productSearchHint');
     const wrap = document.getElementById('productSearchResults');
     const items = result.items || [];
     window._productResults = items;
 
     if (items.length === 0){
-      hint.textContent = 'ไม่พบสินค้าที่ตรงกับคำค้น';
+      hint.textContent = 'ไม่พบสินค้าที่ตรงกับเงื่อนไข';
       wrap.innerHTML = '';
       return;
     }
     hint.textContent = result.truncated
-      ? `พบ ${result.total} รายการ แสดง ${items.length} รายการแรก — พิมพ์ให้เจาะจงขึ้นเพื่อดูรายการอื่น`
+      ? `พบ ${result.total} รายการ แสดง ${items.length} รายการแรก — พิมพ์หรือเลือกแบรนด์ให้เจาะจงขึ้นเพื่อดูรายการอื่น`
       : `พบ ${result.total} รายการ`;
 
-    wrap.innerHTML = items.map((it, i) => `
-      <div class="card tappable" onclick="openSelfForm(${i})">
-        <h3>${esc(it.nameTh || it.nameEn)}</h3>
-        <p>${esc(it.barcode)}${it.skuCode ? ' · SKU ' + esc(it.skuCode) : ''}</p>
-        ${it.category ? '<span class="badge">' + esc(it.category) + '</span>' : ''}
-      </div>
-    `).join('');
+    wrap.innerHTML = items.map((it, i) => {
+      const tags = [];
+      if (it.brand) tags.push('<span class="badge">' + esc(it.brand) + '</span>');
+      if (it.category) tags.push('<span class="badge muted">' + esc(it.category) + '</span>');
+      return `
+        <div class="card tappable" onclick="openSelfForm(${i})">
+          <h3>${highlight_(it.nameTh || it.nameEn, q)}</h3>
+          <p>${highlight_(it.barcode, q)}${it.skuCode ? ' · SKU ' + highlight_(it.skuCode, q) : ''}</p>
+          ${tags.length ? '<div class="tags">' + tags.join('') + '</div>' : ''}
+        </div>`;
+    }).join('');
   }
 
   function openSelfForm(idx){
@@ -763,9 +863,12 @@
 
     document.getElementById('selfFormTitle').textContent = kpi.kpiNameTh;
     document.getElementById('selfProductSummary').innerHTML =
+      '<div class="product-summary">' +
       '<h3 style="margin:0 0 4px; font-size:15px;">' + esc(product.nameTh || product.nameEn) + '</h3>' +
       '<div style="font-size:12px; color:var(--text-soft);">' + esc(product.barcode) +
-      (product.skuCode ? ' · SKU ' + esc(product.skuCode) : '') + '</div>';
+      (product.skuCode ? ' · SKU ' + esc(product.skuCode) : '') + '</div>' +
+      (product.brand ? '<div class="tags"><span class="badge">' + esc(product.brand) + '</span></div>' : '') +
+      '</div>';
     document.getElementById('selfOH').value = '';
     document.getElementById('selfOD').value = '';
     document.getElementById('selfRemark').value = '';
