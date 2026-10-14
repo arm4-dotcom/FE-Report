@@ -55,6 +55,12 @@
   }
   button.primary:disabled{background:#A7B4BC;}
   button.primary:active{background:var(--accent-hover);}
+  button.secondary-btn{
+    background:#fff; color:var(--text); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 18px; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; width:100%;
+  }
+  button.secondary-btn:active{background:var(--bg);}
+  .section-title{font-size:13px; color:var(--text-soft); margin:18px 2px 8px; font-weight:600;}
   .error-msg{color:var(--danger); font-size:13px; margin:-6px 0 14px; display:none;}
   .empty-state{color:var(--text-soft); font-size:14px; text-align:center; padding:40px 12px;}
   .photo-input-wrap{margin-bottom:14px;}
@@ -145,7 +151,7 @@
 
     <div class="photo-input-wrap">
       <label id="formPhotoLabel">แนบรูป</label>
-      <input type="file" id="formPhotoInput" accept="image/*" capture="environment" onchange="onPhotoSelected()">
+      <input type="file" id="formPhotoInput" accept="image/*" capture="environment" onchange="onPhotoSelected('formPhotoInput','formPhotoPreview','formPhotoStatus')">
       <p class="photo-status" id="formPhotoStatus"></p>
       <img id="formPhotoPreview" class="photo-preview">
     </div>
@@ -158,13 +164,69 @@
   </div>
 </div>
 
+<!-- ============ แจ้งเอง: เลือกหมวดย่อย (เมื่อกลุ่มมีหลาย KPI เช่น สินค้าขายดี/ขายช้า) ============ -->
+<div id="screenSelfKpiList" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goToScreen('screenTaskList')">‹</button>
+    <h1 id="selfKpiListTitle">แจ้งหน้าร้าน</h1>
+  </div>
+  <div id="selfKpiListWrap"></div>
+</div>
+
+<!-- ============ แจ้งเอง: ค้นหาสินค้า ============ -->
+<div id="screenProductSearch" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="backFromProductSearch()">‹</button>
+    <div><h1 id="productSearchTitle">ค้นหาสินค้า</h1><div class="sub" id="productSearchSub"></div></div>
+  </div>
+  <div class="card">
+    <label for="productSearchInput">ค้นหาสินค้า (ชื่อ / บาร์โค้ด / SKU)</label>
+    <input type="text" id="productSearchInput" placeholder="พิมพ์อย่างน้อย 2 ตัวอักษร" oninput="onProductSearchInput()" autocomplete="off">
+    <p class="photo-status" id="productSearchHint" style="margin:-6px 0 0;"></p>
+  </div>
+  <div id="productSearchResults"></div>
+</div>
+
+<!-- ============ แจ้งเอง: ฟอร์ม OH / OD ============ -->
+<div id="screenSelfForm" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goToScreen('screenProductSearch')">‹</button>
+    <h1 id="selfFormTitle">แจ้งสต็อก</h1>
+  </div>
+
+  <div class="card">
+    <div id="selfProductSummary" style="margin-bottom:16px;"></div>
+
+    <label for="selfOH">สต็อกในมือ (OH)</label>
+    <input type="number" id="selfOH" inputmode="numeric" min="0" step="1" placeholder="0">
+
+    <label for="selfOD">สินค้าที่กำลังจะเข้า (OD)</label>
+    <input type="number" id="selfOD" inputmode="numeric" min="0" step="1" placeholder="0">
+
+    <div class="photo-input-wrap">
+      <label id="selfPhotoLabel">แนบรูป</label>
+      <input type="file" id="selfPhotoInput" accept="image/*" capture="environment" onchange="onPhotoSelected('selfPhotoInput','selfPhotoPreview','selfPhotoStatus')">
+      <p class="photo-status" id="selfPhotoStatus"></p>
+      <img id="selfPhotoPreview" class="photo-preview">
+    </div>
+
+    <label for="selfRemark">หมายเหตุ (ถ้ามี)</label>
+    <textarea id="selfRemark" placeholder="พิมพ์หมายเหตุเพิ่มเติม…"></textarea>
+
+    <p class="photo-status" style="margin:-6px 0 14px;">แจ้งสินค้าเดิมซ้ำในวันเดียวกัน ระบบจะอัปเดตทับรายการเดิมของวันนี้</p>
+    <button class="primary" id="selfSubmitBtn" onclick="handleSubmitSelfReport()">บันทึกผล</button>
+    <p class="error-msg" id="selfError"></p>
+  </div>
+</div>
+
 <!-- ============ SCREEN 6: ยืนยัน ============ -->
 <div id="screenConfirm" class="screen">
   <div style="padding-top:20vh; text-align:center;">
     <div class="confirm-icon">✅</div>
     <h1 style="font-size:18px;">บันทึกสำเร็จ</h1>
     <p style="color:var(--text-soft); font-size:14px;" id="confirmSubtext"></p>
-    <button class="primary" style="margin-top:20px;" onclick="backToTaskList()">กลับไปรายการงานวันนี้</button>
+    <button class="secondary-btn hidden" id="confirmAgainBtn" style="margin-top:20px;" onclick="selfReportAnother()">แจ้งสินค้าอื่นต่อ</button>
+    <button class="primary" style="margin-top:12px;" onclick="backToTaskList()">กลับไปรายการงานวันนี้</button>
   </div>
 </div>
 
@@ -195,7 +257,13 @@
     currentPhotoBase64: null,
     currentPhotoMime: null,
     photoProcessing: false, // true ระหว่างย่อรูป — กันกดบันทึกก่อนรูปพร้อม
-    photoSeq: 0             // เลขรอบการเลือกรูป กันผลของรอบเก่าทับรอบใหม่
+    photoSeq: 0,            // เลขรอบการเลือกรูป กันผลของรอบเก่าทับรอบใหม่
+    // งานหน้าร้านแจ้งเอง (O1 / F1 / F2)
+    selfGroups: [],         // [{ trackname, kpis: [{ kpiId, kpiNameTh, photoRequired }] }]
+    currentSelfGroup: null,
+    currentSelfKpi: null,
+    currentProduct: null,
+    searchSeq: 0            // เลขรอบการค้นหาสินค้า กันผลของรอบเก่าทับรอบใหม่
   };
 
   // ========== HELPERS ==========
@@ -325,6 +393,7 @@
       state.account = result.account;
       state.channel = result.channel;
       state.groups = result.groups || [];
+      state.selfGroups = result.selfReportGroups || [];
       renderTaskGroups();
       goToScreen('screenTaskList');
     } catch(err){
@@ -337,16 +406,31 @@
     document.getElementById('taskListStoreLabel').textContent = state.storeName || state.storeId;
     document.getElementById('taskListAccountLabel').textContent = state.account + (state.channel ? ' · ' + state.channel : '');
     const wrap = document.getElementById('taskGroupWrap');
-    if (state.groups.length === 0){
+    let html = '';
+    if (state.groups.length > 0){
+      html += state.groups.map((g, i) => `
+        <div class="card tappable" onclick="openGroup(${i})">
+          <h3>${esc(g.trackname)}</h3>
+          <p>${g.items.length} รายการ</p>
+        </div>
+      `).join('');
+    }
+    if (state.selfGroups.length > 0){
+      html += '<div class="section-title">แจ้งหน้าร้าน</div>' + state.selfGroups.map((g, i) => `
+        <div class="card tappable" onclick="openSelfGroup(${i})">
+          <h3>${esc(g.trackname)}</h3>
+          <p>${esc(g.kpis.map(k => k.kpiNameTh).join(' · '))}</p>
+        </div>
+      `).join('');
+    }
+    if (!html){
       wrap.innerHTML = '<div class="empty-state">ไม่มีงานให้ตรวจวันนี้สำหรับร้านนี้</div>';
       return;
     }
-    wrap.innerHTML = state.groups.map((g, i) => `
-      <div class="card tappable" onclick="openGroup(${i})">
-        <h3>${esc(g.trackname)}</h3>
-        <p>${g.items.length} รายการ</p>
-      </div>
-    `).join('');
+    if (state.groups.length === 0){
+      html = '<div class="empty-state" style="padding:16px 12px;">วันนี้ยังไม่มีงานตรวจที่ Admin ตั้งไว้สำหรับร้านนี้</div>' + html;
+    }
+    wrap.innerHTML = html;
   }
 
   // ========== SCREEN 4: รายการย่อยในกลุ่ม ==========
@@ -463,10 +547,10 @@
     return kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB';
   }
 
-  async function onPhotoSelected(){
-    const file = document.getElementById('formPhotoInput').files[0];
-    const preview = document.getElementById('formPhotoPreview');
-    const statusEl = document.getElementById('formPhotoStatus');
+  async function onPhotoSelected(inputId, previewId, statusId){
+    const file = document.getElementById(inputId).files[0];
+    const preview = document.getElementById(previewId);
+    const statusEl = document.getElementById(statusId);
     const seq = ++state.photoSeq;
 
     state.currentPhotoBase64 = null;
@@ -558,6 +642,7 @@
       const result = await callApi('submitTransaction', payload);
       if (!result.success) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
       document.getElementById('confirmSubtext').textContent = it.itemLabel + ' · ' + it.kpiNameTh;
+      document.getElementById('confirmAgainBtn').classList.add('hidden');
       goToScreen('screenConfirm');
     } catch(err){
       errEl.textContent = 'บันทึกไม่สำเร็จ: ' + (err.message || err);
@@ -566,6 +651,196 @@
       btn.disabled = false;
       btn.textContent = 'บันทึกผล';
     }
+  }
+
+  // ========== งานหน้าร้านแจ้งเอง (O1 / F1 / F2: ค้นหาสินค้า + OH + OD) ==========
+  let productSearchDebounce = null;
+
+  function openSelfGroup(idx){
+    state.currentSelfGroup = state.selfGroups[idx];
+    const kpis = state.currentSelfGroup.kpis;
+    if (kpis.length === 1){
+      startProductSearch(kpis[0]); // กลุ่มมี KPI เดียว (เช่น OOS) ข้ามไปค้นหาสินค้าเลย
+      return;
+    }
+    document.getElementById('selfKpiListTitle').textContent = state.currentSelfGroup.trackname;
+    document.getElementById('selfKpiListWrap').innerHTML = kpis.map((k, i) => `
+      <div class="card tappable" onclick="startProductSearch(state.currentSelfGroup.kpis[${i}])">
+        <h3>${esc(k.kpiNameTh)}</h3>
+        <p>ค้นหาสินค้า แล้วแจ้ง OH / OD</p>
+      </div>
+    `).join('');
+    goToScreen('screenSelfKpiList');
+  }
+
+  function startProductSearch(kpi){
+    state.currentSelfKpi = kpi;
+    state.searchSeq++; // ทิ้งผลค้นหาที่ยังค้างจากรอบก่อน
+    document.getElementById('productSearchTitle').textContent = 'ค้นหาสินค้า';
+    document.getElementById('productSearchSub').textContent = kpi.kpiNameTh;
+    document.getElementById('productSearchInput').value = '';
+    document.getElementById('productSearchHint').textContent = '';
+    document.getElementById('productSearchResults').innerHTML = '';
+    window._productResults = [];
+    goToScreen('screenProductSearch');
+  }
+
+  function backFromProductSearch(){
+    const g = state.currentSelfGroup;
+    if (g && g.kpis.length > 1) goToScreen('screenSelfKpiList');
+    else goToScreen('screenTaskList');
+  }
+
+  function onProductSearchInput(){
+    clearTimeout(productSearchDebounce);
+    productSearchDebounce = setTimeout(runProductSearch, 500);
+  }
+
+  async function runProductSearch(){
+    const q = document.getElementById('productSearchInput').value.trim();
+    const hint = document.getElementById('productSearchHint');
+    const wrap = document.getElementById('productSearchResults');
+    const seq = ++state.searchSeq;
+
+    if (q.length < 2){
+      wrap.innerHTML = '';
+      hint.textContent = q.length === 0 ? '' : 'พิมพ์อย่างน้อย 2 ตัวอักษร';
+      return;
+    }
+
+    hint.textContent = 'กำลังค้นหา…';
+    try{
+      const result = await callApi('searchProducts', { query: q });
+      if (seq !== state.searchSeq) return; // มีการค้นหาใหม่กว่าแล้ว ทิ้งผลรอบนี้
+      if (!result.success){
+        wrap.innerHTML = '';
+        hint.textContent = result.error || 'ค้นหาไม่สำเร็จ';
+        return;
+      }
+      renderProductResults(result);
+    } catch(err){
+      if (seq !== state.searchSeq) return;
+      wrap.innerHTML = '';
+      hint.textContent = 'ค้นหาไม่สำเร็จ: ' + (err.message || err);
+    }
+  }
+
+  function renderProductResults(result){
+    const hint = document.getElementById('productSearchHint');
+    const wrap = document.getElementById('productSearchResults');
+    const items = result.items || [];
+    window._productResults = items;
+
+    if (items.length === 0){
+      hint.textContent = 'ไม่พบสินค้าที่ตรงกับคำค้น';
+      wrap.innerHTML = '';
+      return;
+    }
+    hint.textContent = result.truncated
+      ? `พบ ${result.total} รายการ แสดง ${items.length} รายการแรก — พิมพ์ให้เจาะจงขึ้นเพื่อดูรายการอื่น`
+      : `พบ ${result.total} รายการ`;
+
+    wrap.innerHTML = items.map((it, i) => `
+      <div class="card tappable" onclick="openSelfForm(${i})">
+        <h3>${esc(it.nameTh || it.nameEn)}</h3>
+        <p>${esc(it.barcode)}${it.skuCode ? ' · SKU ' + esc(it.skuCode) : ''}</p>
+        ${it.category ? '<span class="badge">' + esc(it.category) + '</span>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function openSelfForm(idx){
+    const product = (window._productResults || [])[idx];
+    if (!product) return;
+    const kpi = state.currentSelfKpi;
+    state.currentProduct = product;
+
+    // รีเซ็ตสถานะรูป (ใช้ตัวแปรร่วมกับฟอร์มปกติ — เปิดได้ทีละฟอร์ม)
+    state.currentPhotoBase64 = null;
+    state.currentPhotoMime = null;
+    state.photoProcessing = false;
+    state.photoSeq++;
+
+    document.getElementById('selfFormTitle').textContent = kpi.kpiNameTh;
+    document.getElementById('selfProductSummary').innerHTML =
+      '<h3 style="margin:0 0 4px; font-size:15px;">' + esc(product.nameTh || product.nameEn) + '</h3>' +
+      '<div style="font-size:12px; color:var(--text-soft);">' + esc(product.barcode) +
+      (product.skuCode ? ' · SKU ' + esc(product.skuCode) : '') + '</div>';
+    document.getElementById('selfOH').value = '';
+    document.getElementById('selfOD').value = '';
+    document.getElementById('selfRemark').value = '';
+    document.getElementById('selfPhotoInput').value = '';
+    document.getElementById('selfPhotoPreview').style.display = 'none';
+    document.getElementById('selfPhotoStatus').textContent = '';
+    document.getElementById('selfError').style.display = 'none';
+    document.getElementById('selfPhotoLabel').textContent = kpi.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
+    goToScreen('screenSelfForm');
+  }
+
+  function isDigits_(v){
+    return /^\d+$/.test(String(v === null || v === undefined ? '' : v).trim());
+  }
+
+  async function handleSubmitSelfReport(){
+    const kpi = state.currentSelfKpi;
+    const product = state.currentProduct;
+    const errEl = document.getElementById('selfError');
+    const btn = document.getElementById('selfSubmitBtn');
+    errEl.style.display = 'none';
+
+    if (state.photoProcessing){
+      errEl.textContent = 'กำลังย่อรูป รอสักครู่แล้วกดบันทึกอีกครั้ง'; errEl.style.display = 'block'; return;
+    }
+
+    const oh = document.getElementById('selfOH').value;
+    const od = document.getElementById('selfOD').value;
+    if (!isDigits_(oh)){
+      errEl.textContent = 'สต็อกในมือ (OH): กรอกจำนวนเต็ม 0 ขึ้นไป'; errEl.style.display = 'block'; return;
+    }
+    if (!isDigits_(od)){
+      errEl.textContent = 'สินค้าที่กำลังจะเข้า (OD): กรอกจำนวนเต็ม 0 ขึ้นไป'; errEl.style.display = 'block'; return;
+    }
+    if (kpi.photoRequired && !state.currentPhotoBase64){
+      errEl.textContent = 'รายการนี้บังคับแนบรูป'; errEl.style.display = 'block'; return;
+    }
+
+    // ไม่ส่ง lineUserId / staffName / storeName — เซิร์ฟเวอร์ดึงจาก ID token + Lineregister เอง
+    const payload = {
+      storeId: state.storeId,
+      kpiId: kpi.kpiId,
+      skuCode: product.skuCode,
+      oh: String(oh).trim(),
+      od: String(od).trim(),
+      remark: document.getElementById('selfRemark').value.trim()
+    };
+    if (state.currentPhotoBase64){
+      payload.photoBase64 = state.currentPhotoBase64;
+      payload.photoMimeType = state.currentPhotoMime;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก…';
+    try{
+      const result = await callApi('submitSelfReport', payload);
+      if (!result.success) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
+      document.getElementById('confirmSubtext').textContent =
+        (product.nameTh || product.nameEn) + ' · ' + kpi.kpiNameTh +
+        (result.overwritten ? ' (อัปเดตรายการเดิมของวันนี้)' : '');
+      document.getElementById('confirmAgainBtn').classList.remove('hidden');
+      goToScreen('screenConfirm');
+    } catch(err){
+      errEl.textContent = 'บันทึกไม่สำเร็จ: ' + (err.message || err);
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'บันทึกผล';
+    }
+  }
+
+  /** ปุ่ม "แจ้งสินค้าอื่นต่อ" บนหน้ายืนยัน — กลับไปค้นหาสินค้าใหม่ใน KPI เดิม */
+  function selfReportAnother(){
+    if (state.currentSelfKpi) startProductSearch(state.currentSelfKpi);
+    else backToTaskList();
   }
 
   // ========== SCREEN 6 -> กลับไป Screen 3 ==========
