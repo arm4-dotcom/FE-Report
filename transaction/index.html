@@ -172,6 +172,29 @@
   .product-summary{
     border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:10px; padding:10px 12px;
   }
+
+  /* ---------- ที่กรอกวันนี้ (ดู / แก้ไข / ลบ) ---------- */
+  .my-entries-btn .progress-row{margin-bottom:2px; font-size:15px;}
+  .my-entries-btn .chev{font-size:20px; color:var(--text-soft); line-height:1;}
+  .entry-value{font-size:14px !important; color:var(--text) !important; font-weight:600; margin-top:2px;}
+  .entry-remark{font-size:12px !important; margin-top:6px !important;}
+  .entry-actions{display:flex; gap:8px; margin-top:12px;}
+  .entry-btn{
+    flex:1; font-family:inherit; font-size:14px; font-weight:600; padding:10px 8px; border-radius:10px; cursor:pointer;
+    background:#fff; color:var(--accent-hover); border:1px solid var(--accent);
+  }
+  .entry-btn:active{background:var(--accent-soft);}
+  .entry-btn.danger{color:var(--danger); border-color:var(--danger);}
+  .entry-btn.danger.armed{background:var(--danger); color:#fff;}
+  .entry-btn:disabled{opacity:.6;}
+  .entry-locked{font-size:12px; color:var(--text-soft); margin-top:10px;}
+  .banner{
+    border-radius:var(--radius); padding:10px 14px; font-size:13px; font-weight:600; margin-bottom:12px;
+    background:var(--ok-soft); color:var(--ok); border:1px solid #BFE8CF;
+  }
+  .banner.err{background:#FDECEA; color:var(--danger); border-color:#F4C7C0;}
+  .edit-hint{font-size:13px; color:var(--accent-hover); background:var(--accent-soft); border-radius:10px; padding:8px 12px; margin:0 0 14px;}
+  .edit-hint.ok{color:var(--ok); background:var(--ok-soft);}
 </style>
 </head>
 <body>
@@ -243,6 +266,23 @@
 
   <div class="section-title">📋 ประเภทงาน</div>
   <div class="menu-grid" id="menuGrid"></div>
+
+  <div class="section-title">📄 รายการของฉัน</div>
+  <div class="card tappable my-entries-btn" onclick="openMyEntries()">
+    <div class="progress-row"><span><b>ที่กรอกวันนี้</b> <span id="myEntriesCount"></span></span><span class="chev">›</span></div>
+    <div class="mini-note">ดู แก้ไข หรือลบรายการที่คุณกรอกวันนี้ในร้านนี้ (ไม่แสดงรูป)</div>
+  </div>
+</div>
+
+<!-- ============ SCREEN: ที่กรอกวันนี้ (ดู / แก้ไข / ลบ) ============ -->
+<div id="screenMyEntries" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="backFromMyEntries()">‹</button>
+    <div><h1>ที่กรอกวันนี้</h1><div class="sub" id="myEntriesStoreLabel"></div></div>
+  </div>
+  <div id="myEntriesBanner" class="banner hidden"></div>
+  <div id="myEntriesWrap"><div class="empty-state">กำลังโหลด…</div></div>
+  <p class="mini-note" style="text-align:center;">แก้ไขหรือลบได้เฉพาะรายการที่กรอกวันนี้ — ข้ามวันแล้วแก้ไขไม่ได้</p>
 </div>
 
 <!-- ============ SCREEN 4: รายการในหมวด (งานตาม CONFIGAUDIT) ============ -->
@@ -267,12 +307,12 @@
 <!-- ============ SCREEN 5: ฟอร์มบันทึกผล ============ -->
 <div id="screenForm" class="screen">
   <div class="topbar">
-    <button class="back" onclick="goToScreen('screenGroupItems')">‹</button>
+    <button class="back" onclick="backFromForm()">‹</button>
     <h1 id="formItemTitle">บันทึกผล</h1>
   </div>
 
   <div class="card">
-    <p class="photo-status hidden" id="formDoneHint" style="margin:0 0 12px; color:var(--ok);">✓ รายการนี้บันทึกไปแล้ว — บันทึกใหม่จะทับค่าเดิม</p>
+    <p class="edit-hint hidden" id="formDoneHint"></p>
 
     <!-- ช่องตัวเลข: โชว์เมื่อ inputType เป็น 'number' หรือ 'both' -->
     <div id="formNumberField">
@@ -335,11 +375,12 @@
 <!-- ============ แจ้งเอง: ฟอร์ม OH / OD ============ -->
 <div id="screenSelfForm" class="screen">
   <div class="topbar">
-    <button class="back" onclick="goToScreen('screenProductSearch')">‹</button>
+    <button class="back" onclick="backFromSelfForm()">‹</button>
     <h1 id="selfFormTitle">แจ้งสต็อก</h1>
   </div>
 
   <div class="card">
+    <p class="edit-hint hidden" id="selfEditHint"></p>
     <div id="selfProductSummary" style="margin-bottom:16px;"></div>
 
     <label for="selfOH">สต็อกในมือ (OH)</label>
@@ -399,7 +440,7 @@
     account: '',
     channel: '',
     menu: [],               // ช่องเมนูของร้านที่เลือก (kind 'config' / 'self')
-    summary: { total: 0, done: 0, remaining: 0, selfToday: 0 },
+    summary: { total: 0, done: 0, remaining: 0, selfToday: 0, myToday: 0 },
     currentTileKey: '',     // TRACKNAME ของช่องเมนูที่เปิดอยู่
     currentGroup: null,     // { trackname, items[] } ของงานตาม CONFIGAUDIT ที่เปิดอยู่
     itemFilter: 'all',      // 'all' / 'todo'
@@ -414,7 +455,11 @@
     currentSelfKpi: null,
     currentProduct: null,
     searchSeq: 0,           // เลขรอบการค้นหาสินค้า กันผลของรอบเก่าทับรอบใหม่
-    brands: null            // รายชื่อแบรนด์ — null = ยังไม่ได้โหลด/โหลดไม่สำเร็จ
+    brands: null,           // รายชื่อแบรนด์ — null = ยังไม่ได้โหลด/โหลดไม่สำเร็จ
+    // ที่กรอกวันนี้ (ดู / แก้ไข / ลบ)
+    entries: [],            // รายการที่ผู้ใช้กรอกวันนี้ในร้านนี้ (จากเซิร์ฟเวอร์ ไม่มีรูป)
+    entriesSeq: 0,          // เลขรอบการโหลดรายการ กันผลของรอบเก่าทับรอบใหม่
+    editEntry: null         // รายการที่กำลังแก้ไขอยู่ (null = บันทึกใหม่ตามปกติ)
   };
 
   // ========== HELPERS ==========
@@ -619,7 +664,7 @@
     state.account = result.account;
     state.channel = result.channel;
     state.menu = result.menu || [];
-    state.summary = result.summary || { total: 0, done: 0, remaining: 0, selfToday: 0 };
+    state.summary = result.summary || { total: 0, done: 0, remaining: 0, selfToday: 0, myToday: 0 };
   }
 
   async function loadTaskList(){
@@ -643,6 +688,7 @@
       : 'ยังไม่มีงานตรวจตามที่ตั้งไว้ในร้านนี้';
     document.getElementById('menuProgressBar').style.width = pct_(s.done, s.total) + '%';
     document.getElementById('menuProgressSub').textContent = s.selfToday > 0 ? `แจ้งเพิ่มวันนี้ ${s.selfToday} รายการ` : '';
+    document.getElementById('myEntriesCount').textContent = (s.myToday || 0) > 0 ? `(${s.myToday} รายการ)` : '';
 
     document.getElementById('menuGrid').innerHTML = state.menu.map((t, i) => {
       if (t.kind === 'self'){
@@ -676,6 +722,161 @@
   function backToMenu(){
     renderMenu_();
     goToScreen('screenTaskList');
+  }
+
+  // ========== ที่กรอกวันนี้: ดู / แก้ไข / ลบ ==========
+  function showEntriesBanner_(msg, isErr){
+    const b = document.getElementById('myEntriesBanner');
+    b.textContent = msg;
+    b.classList.toggle('err', !!isErr);
+    b.classList.remove('hidden');
+    clearTimeout(showEntriesBanner_.t);
+    showEntriesBanner_.t = setTimeout(() => b.classList.add('hidden'), isErr ? 6000 : 3500);
+  }
+
+  async function openMyEntries(){
+    state.editEntry = null;
+    document.getElementById('myEntriesStoreLabel').textContent = state.storeName || state.storeId;
+    document.getElementById('myEntriesBanner').classList.add('hidden');
+    document.getElementById('myEntriesWrap').innerHTML = '<div class="empty-state">กำลังโหลด…</div>';
+    goToScreen('screenMyEntries');
+    await loadMyEntries_();
+  }
+
+  async function loadMyEntries_(){
+    const seq = ++state.entriesSeq;
+    try{
+      const result = await callApi('getMyEntries', { storeId: state.storeId });
+      if (seq !== state.entriesSeq) return;
+      if (!result.success) throw new Error(result.error || 'โหลดรายการไม่สำเร็จ');
+      state.entries = result.entries || [];
+      renderMyEntries_();
+    } catch(err){
+      if (seq !== state.entriesSeq) return;
+      document.getElementById('myEntriesWrap').innerHTML =
+        '<div class="empty-state">โหลดรายการไม่สำเร็จ: ' + esc(err.message || err) + '<br><br>' +
+        '<button class="secondary-btn" onclick="openMyEntries()">ลองใหม่</button></div>';
+    }
+  }
+
+  /** หา item ของงานตามคอนฟิกในเมนูปัจจุบันด้วย configId — ไม่เจอ = รายการนั้นปิดไปแล้ว แก้ไขไม่ได้ */
+  function findMenuItem_(configId){
+    for (const tile of state.menu){
+      if (tile.kind !== 'config') continue;
+      const item = (tile.items || []).find(it => String(it.configId) === String(configId));
+      if (item) return { tile: tile, item: item };
+    }
+    return null;
+  }
+
+  function findSelfKpi_(kpiId){
+    for (const tile of state.menu){
+      if (tile.kind !== 'self') continue;
+      const kpi = (tile.kpis || []).find(k => String(k.kpiId) === String(kpiId));
+      if (kpi) return { tile: tile, kpi: kpi };
+    }
+    return null;
+  }
+
+  function renderMyEntries_(){
+    const wrap = document.getElementById('myEntriesWrap');
+    const list = state.entries;
+    if (list.length === 0){
+      wrap.innerHTML = '<div class="empty-state">ยังไม่มีรายการที่คุณกรอกวันนี้ในร้านนี้</div>';
+      return;
+    }
+
+    // จัดกลุ่มตามประเภทงาน เรียงตามเมนู แล้วตามด้วยกลุ่มที่ไม่อยู่ในเมนู (ถ้ามี)
+    const titleByTrack = {};
+    const order = [];
+    state.menu.forEach(t => { titleByTrack[String(t.trackname).toUpperCase()] = t.title; order.push(String(t.trackname).toUpperCase()); });
+    const groups = {};
+    list.forEach(e => {
+      const key = String(e.trackname || '').toUpperCase();
+      if (!groups[key]){ groups[key] = []; if (order.indexOf(key) === -1) order.push(key); }
+      groups[key].push(e);
+    });
+
+    wrap.innerHTML = order.filter(k => groups[k]).map(k => {
+      const title = titleByTrack[k] || k;
+      const cards = groups[k].map(e => entryCardHtml_(e)).join('');
+      return `<div class="section-title">${esc(title)} (${groups[k].length})</div>${cards}`;
+    }).join('');
+  }
+
+  function entryCardHtml_(e){
+    const editable = e.kind === 'self' ? true : !!findMenuItem_(e.configId);
+    const tid = esc(e.transactionId);
+    const tags = [`<span class="badge muted">⏱ ${esc(e.time)}</span>`];
+    if (e.hasPhoto) tags.push('<span class="badge">📷 แนบรูปแล้ว</span>');
+    return `
+      <div class="card">
+        <h3>${esc(e.itemLabel || e.kpiNameTh)}</h3>
+        <p>${esc(e.kpiNameTh)}</p>
+        <p class="entry-value">${esc(e.valueText)}</p>
+        <div class="tags">${tags.join('')}</div>
+        ${e.remark ? `<p class="entry-remark">หมายเหตุ: ${esc(e.remark)}</p>` : ''}
+        <div class="entry-actions">
+          ${editable ? `<button class="entry-btn" onclick="editEntry('${tid}')">แก้ไข</button>` : ''}
+          <button class="entry-btn danger" onclick="handleDeleteEntry(this, '${tid}')">ลบ</button>
+        </div>
+        ${editable ? '' : '<div class="entry-locked">แก้ไขไม่ได้ (รายการตรวจนี้ปิดไปแล้ว) — ลบได้เท่านั้น</div>'}
+      </div>`;
+  }
+
+  /** ลบ: แตะ 2 ครั้งเพื่อยืนยัน (ครั้งแรกเปลี่ยนปุ่มเป็น "แตะอีกครั้งเพื่อลบ" ถ้าไม่แตะต่อใน 4 วินาทีจะกลับเป็นเดิม) */
+  async function handleDeleteEntry(btn, tid){
+    if (!btn.dataset.arm){
+      btn.dataset.arm = '1';
+      btn.textContent = 'แตะอีกครั้งเพื่อลบ';
+      btn.classList.add('armed');
+      setTimeout(() => {
+        if (btn.isConnected){ delete btn.dataset.arm; btn.textContent = 'ลบ'; btn.classList.remove('armed'); }
+      }, 4000);
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'กำลังลบ…';
+    try{
+      const result = await callApi('deleteMyEntry', { transactionId: tid, storeId: state.storeId });
+      if (!result.success) throw new Error(result.error || 'ลบไม่สำเร็จ');
+      state.entries = state.entries.filter(x => x.transactionId !== tid); // อัปเดตจากผลที่ตอบกลับ ไม่ต้องโหลดใหม่
+      state.summary.myToday = Math.max(0, (state.summary.myToday || 0) - 1);
+      renderMyEntries_();
+      showEntriesBanner_('ลบรายการแล้ว');
+      refreshTasks_().catch(() => {}); // อัปเดตสถานะ "ทำแล้ว" เบื้องหลัง
+    } catch(err){
+      btn.disabled = false;
+      delete btn.dataset.arm;
+      btn.textContent = 'ลบ';
+      btn.classList.remove('armed');
+      showEntriesBanner_('ลบไม่สำเร็จ: ' + (err.message || err), true);
+    }
+  }
+
+  function backFromMyEntries(){
+    state.editEntry = null;
+    renderMenu_();
+    goToScreen('screenTaskList');
+    refreshTasks_().then(renderMenu_).catch(() => {}); // โหลดตัวเลขล่าสุดมาแสดงเบื้องหลัง
+  }
+
+  function editEntry(tid){
+    const e = state.entries.find(x => x.transactionId === tid);
+    if (!e) return;
+    if (e.kind === 'self') editSelfEntry_(e);
+    else editConfigEntry_(e);
+  }
+
+  /** แก้ไขเสร็จ: กลับหน้า "ที่กรอกวันนี้" แล้วโหลดรายการใหม่ พร้อมแจ้งผล */
+  async function finishEdit_(msg){
+    state.editEntry = null;
+    state.entries = [];
+    document.getElementById('myEntriesWrap').innerHTML = '<div class="empty-state">กำลังโหลด…</div>';
+    goToScreen('screenMyEntries');
+    showEntriesBanner_(msg);
+    refreshTasks_().catch(() => {});
+    await loadMyEntries_();
   }
 
   // ========== SCREEN 4: รายการในหมวด (งานตาม CONFIGAUDIT) ==========
@@ -717,7 +918,9 @@
         <h3>${esc(x.it.itemLabel)}${x.it.barcode ? ' (' + esc(x.it.barcode) + ')' : ''}</h3>
         <p>${esc(x.it.kpiNameTh)}</p>
         <div class="tags">
-          ${x.it.done ? '<span class="badge ok">✓ ทำแล้ว</span>' : '<span class="badge muted">ยังไม่ได้ทำ</span>'}
+          ${x.it.done
+            ? (x.it.doneToday ? '<span class="badge ok">✓ ทำแล้ว</span>' : '<span class="badge ok">✓ ทำแล้ว · ปิดการแก้ไข</span>')
+            : '<span class="badge muted">ยังไม่ได้ทำ</span>'}
           ${x.it.photoRequired ? '<span class="badge warn">บังคับแนบรูป</span>' : ''}
         </div>
       </div>
@@ -725,23 +928,55 @@
   }
 
   // ========== SCREEN 5: ฟอร์มบันทึกผล ==========
-  async function openItemForm(idx){
-    state.currentItem = state.currentGroup.items[idx];
+  function openItemForm(idx){
+    const it = state.currentGroup.items[idx];
+    if (it.done && !it.doneToday){
+      alert('รายการนี้บันทึกไปแล้วเมื่อวันก่อน แก้ไขไม่ได้ (แก้ไขได้เฉพาะวันที่กรอก)');
+      return;
+    }
+    openItemFormWith_(it, null);
+  }
+
+  function editConfigEntry_(e){
+    const found = findMenuItem_(e.configId);
+    if (!found){
+      alert('รายการตรวจนี้ปิดไปแล้ว แก้ไขไม่ได้');
+      return;
+    }
+    state.currentGroup = { trackname: found.tile.trackname, title: found.tile.title, items: found.tile.items };
+    state.currentTileKey = found.tile.trackname;
+    openItemFormWith_(found.item, e);
+  }
+
+  /** entry = null: บันทึกใหม่ตามปกติ / entry = รายการที่กรอกวันนี้: โหมดแก้ไข (เติมค่าเดิมให้) */
+  async function openItemFormWith_(it, entry){
+    state.currentItem = it;
+    state.editEntry = entry || null;
     state.currentPhotoBase64 = null;
     state.currentPhotoMime = null;
     state.photoProcessing = false;
     state.photoSeq++; // ยกเลิกผลของการย่อรูปที่ยังค้างอยู่จากฟอร์มก่อนหน้า
-    const it = state.currentItem;
 
     document.getElementById('formItemTitle').textContent = it.itemLabel;
-    document.getElementById('formAnswerNumber').value = '';
-    document.getElementById('formRemark').value = '';
+    document.getElementById('formError').style.display = 'none';
     document.getElementById('formPhotoInput').value = '';
     document.getElementById('formPhotoPreview').style.display = 'none';
     document.getElementById('formPhotoStatus').textContent = '';
-    document.getElementById('formError').style.display = 'none';
-    document.getElementById('formDoneHint').classList.toggle('hidden', !it.done);
-    document.getElementById('formPhotoLabel').textContent = it.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
+
+    const hint = document.getElementById('formDoneHint');
+    if (entry){
+      hint.textContent = '✏️ แก้ไขรายการที่กรอกเมื่อ ' + entry.time + ' — แก้ไขได้ถึงสิ้นวันนี้';
+      hint.className = 'edit-hint';
+    } else if (it.doneToday){
+      hint.textContent = '✓ รายการนี้บันทึกไปแล้ววันนี้ — บันทึกใหม่จะทับค่าเดิม';
+      hint.className = 'edit-hint ok';
+    } else {
+      hint.className = 'edit-hint hidden';
+    }
+
+    const photoWord = it.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
+    document.getElementById('formPhotoLabel').textContent =
+      (entry && entry.hasPhoto) ? photoWord + ' — ไม่เลือกรูปใหม่ = ใช้รูปเดิม' : photoWord;
     // label ของช่อง number เปลี่ยนตาม KPI (เช่น 'ราคา' สำหรับ S1/P2, 'จำนวน' สำหรับ S2/V1/V2 ฯลฯ)
     document.getElementById('formNumberLabel').textContent = it.numberLabel || 'จำนวน';
 
@@ -749,6 +984,9 @@
     const showDropdown = showsDropdown_(it.inputType);
     document.getElementById('formNumberField').classList.toggle('hidden', !showNumber);
     document.getElementById('formDropdownField').classList.toggle('hidden', !showDropdown);
+
+    document.getElementById('formAnswerNumber').value = (entry && showNumber) ? entry.answerValue : '';
+    document.getElementById('formRemark').value = entry ? entry.remark : '';
 
     if (showDropdown){
       const sel = document.getElementById('formReasonSelect');
@@ -758,11 +996,21 @@
         const result = await callApi('getReasons', { kpiId: it.kpiId });
         sel.innerHTML = '<option value="">— เลือก —</option>' +
           (result.items || []).map(r => `<option value="${esc(r.reasonId)}">${esc(r.reasonTh)}</option>`).join('');
+        if (entry && entry.reasonId) sel.value = String(entry.reasonId); // เติมเหตุผลเดิม
       } catch(err){
         sel.innerHTML = '<option value="">โหลดตัวเลือกไม่สำเร็จ</option>';
       }
     } else {
       goToScreen('screenForm');
+    }
+  }
+
+  function backFromForm(){
+    if (state.editEntry){
+      state.editEntry = null;
+      goToScreen('screenMyEntries');
+    } else {
+      goToScreen('screenGroupItems');
     }
   }
 
@@ -906,7 +1154,9 @@
       }
     }
 
-    if (it.photoRequired && !state.currentPhotoBase64){
+    // โหมดแก้ไข: ถ้ารายการเดิมมีรูปอยู่แล้ว ไม่ต้องเลือกรูปใหม่ (เซิร์ฟเวอร์คงรูปเดิมไว้)
+    const hasOldPhoto = !!(state.editEntry && state.editEntry.hasPhoto);
+    if (it.photoRequired && !state.currentPhotoBase64 && !hasOldPhoto){
       errEl.textContent = 'รายการนี้บังคับแนบรูป'; errEl.style.display = 'block'; return;
     }
     if (state.currentPhotoBase64){
@@ -920,6 +1170,11 @@
       const result = await callApi('submitTransaction', payload);
       if (!result.success) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
       it.done = true; // อัปเดตสถานะในหน้าจอทันที (รอบถัดไปจะโหลดจากเซิร์ฟเวอร์อีกครั้ง)
+      it.doneToday = true;
+      if (state.editEntry){
+        await finishEdit_('แก้ไขรายการแล้ว');
+        return;
+      }
       state.lastFlow = 'config';
       document.getElementById('confirmSubtext').textContent = it.itemLabel + ' · ' + it.kpiNameTh;
       document.getElementById('confirmNextBtn').textContent = 'ทำรายการถัดไป';
@@ -959,6 +1214,7 @@
 
   function startProductSearch(kpi){
     state.currentSelfKpi = kpi;
+    state.editEntry = null;
     state.searchSeq++; // ทิ้งผลค้นหาที่ยังค้างจากรอบก่อน
     document.getElementById('productSearchTitle').textContent = 'ค้นหาสินค้า';
     document.getElementById('productSearchSub').textContent = kpi.kpiNameTh;
@@ -1117,8 +1373,22 @@
   function openSelfForm(idx){
     const product = (window._productResults || [])[idx];
     if (!product) return;
+    openSelfFormWith_(product, null);
+  }
+
+  /** แก้ไขรายการแจ้งเอง (OOS) — เปลี่ยนสินค้าไม่ได้ (ผูกกับรหัสรายการ) ถ้าสินค้าผิดให้ลบแล้วแจ้งใหม่ */
+  function editSelfEntry_(e){
+    const found = findSelfKpi_(e.kpiId);
+    state.currentSelfKpi = found ? found.kpi : { kpiId: e.kpiId, kpiNameTh: e.kpiNameTh, photoRequired: false };
+    if (found) state.currentSelfGroup = { trackname: found.tile.trackname, title: found.tile.title, kpis: found.tile.kpis };
+    const product = { skuCode: e.skuCode, nameTh: e.itemLabel, nameEn: '', barcode: '', brand: '' };
+    openSelfFormWith_(product, e);
+  }
+
+  function openSelfFormWith_(product, entry){
     const kpi = state.currentSelfKpi;
     state.currentProduct = product;
+    state.editEntry = entry || null;
 
     // รีเซ็ตสถานะรูป (ใช้ตัวแปรร่วมกับฟอร์มปกติ — เปิดได้ทีละฟอร์ม)
     state.currentPhotoBase64 = null;
@@ -1127,22 +1397,42 @@
     state.photoSeq++;
 
     document.getElementById('selfFormTitle').textContent = kpi.kpiNameTh;
+    const idLine = [product.barcode, product.skuCode ? 'SKU ' + product.skuCode : ''].filter(Boolean).map(esc).join(' · ');
     document.getElementById('selfProductSummary').innerHTML =
       '<div class="product-summary">' +
       '<h3 style="margin:0 0 4px; font-size:15px;">' + esc(product.nameTh || product.nameEn) + '</h3>' +
-      '<div style="font-size:12px; color:var(--text-soft);">' + esc(product.barcode) +
-      (product.skuCode ? ' · SKU ' + esc(product.skuCode) : '') + '</div>' +
+      (idLine ? '<div style="font-size:12px; color:var(--text-soft);">' + idLine + '</div>' : '') +
       (product.brand ? '<div class="tags"><span class="badge">' + esc(product.brand) + '</span></div>' : '') +
       '</div>';
-    document.getElementById('selfOH').value = '';
-    document.getElementById('selfOD').value = '';
-    document.getElementById('selfRemark').value = '';
+
+    const hint = document.getElementById('selfEditHint');
+    if (entry){
+      hint.textContent = '✏️ แก้ไขรายการที่กรอกเมื่อ ' + entry.time + ' — แก้ไขได้ถึงสิ้นวันนี้';
+      hint.className = 'edit-hint';
+    } else {
+      hint.className = 'edit-hint hidden';
+    }
+
+    document.getElementById('selfOH').value = entry ? entry.oh : '';
+    document.getElementById('selfOD').value = entry ? entry.od : '';
+    document.getElementById('selfRemark').value = entry ? entry.remark : '';
     document.getElementById('selfPhotoInput').value = '';
     document.getElementById('selfPhotoPreview').style.display = 'none';
     document.getElementById('selfPhotoStatus').textContent = '';
     document.getElementById('selfError').style.display = 'none';
-    document.getElementById('selfPhotoLabel').textContent = kpi.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
+    const photoWord = kpi.photoRequired ? 'แนบรูป (บังคับ)' : 'แนบรูป (ไม่บังคับ)';
+    document.getElementById('selfPhotoLabel').textContent =
+      (entry && entry.hasPhoto) ? photoWord + ' — ไม่เลือกรูปใหม่ = ใช้รูปเดิม' : photoWord;
     goToScreen('screenSelfForm');
+  }
+
+  function backFromSelfForm(){
+    if (state.editEntry){
+      state.editEntry = null;
+      goToScreen('screenMyEntries');
+    } else {
+      goToScreen('screenProductSearch');
+    }
   }
 
   function isDigits_(v){
@@ -1168,7 +1458,9 @@
     if (!isDigits_(od)){
       errEl.textContent = 'สินค้าที่กำลังจะเข้า (OD): กรอกจำนวนเต็ม 0 ขึ้นไป'; errEl.style.display = 'block'; return;
     }
-    if (kpi.photoRequired && !state.currentPhotoBase64){
+    // โหมดแก้ไข: ถ้ารายการเดิมมีรูปอยู่แล้ว ไม่ต้องเลือกรูปใหม่ (เซิร์ฟเวอร์คงรูปเดิมไว้)
+    const hasOldPhoto = !!(state.editEntry && state.editEntry.hasPhoto);
+    if (kpi.photoRequired && !state.currentPhotoBase64 && !hasOldPhoto){
       errEl.textContent = 'รายการนี้บังคับแนบรูป'; errEl.style.display = 'block'; return;
     }
 
@@ -1191,6 +1483,10 @@
     try{
       const result = await callApi('submitSelfReport', payload);
       if (!result.success) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
+      if (state.editEntry){
+        await finishEdit_('แก้ไขรายการแล้ว');
+        return;
+      }
       state.lastFlow = 'self';
       document.getElementById('confirmSubtext').textContent =
         (product.nameTh || product.nameEn) + ' · ' + kpi.kpiNameTh +
