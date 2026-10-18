@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1A55C4">
 <title>ตรวจร้าน — Arm Project H2 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   :root{
@@ -167,6 +167,11 @@
   .filter-label{font-size:12px; color:var(--text-soft); margin:0 0 4px 2px; font-weight:500;}
   .search-panel select{margin-bottom:0; background:var(--bg); border-color:transparent;}
   .search-panel select:disabled{background:#EEF2F8;}
+  /* ช่องบาร์โค้ด (ชิ้น / แพ็ค) — รับเฉพาะตัวเลข */
+  .search-panel input.code-input{
+    margin:0 0 12px; background:var(--bg); border-color:transparent; letter-spacing:.04em;
+  }
+  .search-panel input.code-input:focus{background:#fff;}
   .search-hint{font-size:12px; color:var(--text-soft); margin:10px 2px 0; min-height:16px;}
   .brand-note{font-size:12px; color:var(--danger); margin:8px 2px 0; cursor:pointer;}
   .product-summary{
@@ -195,6 +200,91 @@
   .banner.err{background:#FDECEA; color:var(--danger); border-color:#F4C7C0;}
   .edit-hint{font-size:13px; color:var(--accent-hover); background:var(--accent-soft); border-radius:10px; padding:8px 12px; margin:0 0 14px;}
   .edit-hint.ok{color:var(--ok); background:var(--ok-soft);}
+
+  /* =====================================================================
+     หน้าแรก (เลือกร้าน): ธีมมืดแนวล้ำสมัย + แยกร้านเป็นส่วนของแต่ละ Account
+     ใช้เฉพาะหน้า #screenStoreSelect — หน้าอื่นคงธีมขาว-ฟ้าเดิม
+     ===================================================================== */
+  body.home-dark{background:#060D1F;}
+  #screenStoreSelect{
+    --h-text:#E6F0FF; --h-soft:#8EA4C8; --h-line:rgba(110,180,255,.20);
+    --h-cyan:#35D6FF; --h-blue:#4C8DFF; --h-ok:#5BE3A0;
+    color:var(--h-text);
+    background:
+      radial-gradient(520px 260px at 92% -40px, rgba(53,214,255,.20), transparent 70%),
+      radial-gradient(460px 280px at -12% 70px, rgba(76,141,255,.20), transparent 70%),
+      linear-gradient(rgba(110,180,255,.06) 1px, transparent 1px) 0 0/30px 30px,
+      linear-gradient(90deg, rgba(110,180,255,.06) 1px, transparent 1px) 0 0/30px 30px,
+      #060D1F;
+  }
+  #screenStoreSelect .topbar{
+    background:linear-gradient(135deg,#0A1B45 0%,#0F3170 100%);
+    box-shadow:0 6px 24px rgba(0,0,0,.45), 0 1px 0 rgba(53,214,255,.40);
+  }
+  #screenStoreSelect .topbar .sub{color:var(--h-cyan);}
+  #screenStoreSelect .section-title{color:var(--h-soft);}
+  #screenStoreSelect .empty-state{color:var(--h-soft);}
+
+  #screenStoreSelect .card{
+    background:rgba(255,255,255,.045); border:1px solid var(--h-line);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.30);
+  }
+  #screenStoreSelect .card.tappable:active{background:rgba(53,214,255,.10); border-color:var(--h-cyan);}
+  #screenStoreSelect .card h3{color:var(--h-text);}
+  #screenStoreSelect .card p,
+  #screenStoreSelect .user-sub,
+  #screenStoreSelect .summary-title,
+  #screenStoreSelect .summary-sub,
+  #screenStoreSelect .mini-note{color:var(--h-soft);}
+  #screenStoreSelect .summary-main,
+  #screenStoreSelect .user-name,
+  #screenStoreSelect .progress-row{color:var(--h-text);}
+  #screenStoreSelect .avatar{
+    background-color:rgba(53,214,255,.12); color:var(--h-cyan);
+    box-shadow:0 0 0 2px rgba(53,214,255,.45), 0 0 14px rgba(53,214,255,.35);
+  }
+  #screenStoreSelect .line-badge{background:rgba(91,227,160,.12); color:var(--h-ok); border-color:rgba(91,227,160,.38);}
+  #screenStoreSelect .bar{background:rgba(255,255,255,.09);}
+  #screenStoreSelect .bar > i{
+    background:linear-gradient(90deg,var(--h-blue),var(--h-cyan)); box-shadow:0 0 10px rgba(53,214,255,.55);
+  }
+  #screenStoreSelect .badge{background:rgba(76,141,255,.18); color:#A9CCFF;}
+  #screenStoreSelect .badge.ok{background:rgba(91,227,160,.15); color:var(--h-ok);}
+  #screenStoreSelect .badge.muted{background:rgba(255,255,255,.08); color:#9FB3D1;}
+
+  /* กลุ่ม Account */
+  .acc-section{margin-bottom:18px;}
+  .acc-head{
+    position:relative; cursor:pointer; overflow:hidden; -webkit-tap-highlight-color:transparent;
+    padding:14px 14px 14px 18px; border-radius:14px; border:1px solid var(--h-line);
+    background:linear-gradient(135deg, rgba(76,141,255,.20), rgba(53,214,255,.05));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 22px rgba(0,0,0,.30);
+  }
+  .acc-head::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+    background:linear-gradient(180deg,var(--h-cyan),var(--h-blue)); box-shadow:0 0 12px var(--h-cyan);
+  }
+  .acc-head:active{border-color:var(--h-cyan);}
+  .acc-top{display:flex; align-items:center; gap:10px;}
+  .acc-name{flex:1; min-width:0; font-size:18px; font-weight:700; letter-spacing:.02em; overflow-wrap:anywhere;}
+  .acc-pct{
+    font-family:'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace; font-size:22px; line-height:1;
+    color:var(--h-cyan); text-shadow:0 0 10px rgba(53,214,255,.55); flex:none;
+  }
+  .acc-chev{width:20px; text-align:center; color:var(--h-soft); flex:none; transition:transform .18s ease;}
+  .acc-section.collapsed .acc-chev{transform:rotate(-90deg);}
+  .acc-meta{font-size:12px; color:var(--h-soft); margin:6px 0 10px;}
+  .acc-body{margin:10px 0 0 6px; padding-left:10px; border-left:1px dashed rgba(110,180,255,.28);}
+  .acc-section.collapsed .acc-body{display:none;}
+  .store-card{margin-bottom:10px; padding:14px;}
+  .store-card h3{margin-bottom:2px;}
+  .sid{
+    font-family:'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace; font-size:12px;
+    color:var(--h-cyan); margin-left:6px; white-space:nowrap;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .acc-chev, .bar > i, .card.tappable, .menu-tile{transition:none;}
+  }
 </style>
 </head>
 <body>
@@ -224,7 +314,7 @@
   </div>
 </div>
 
-<!-- ============ SCREEN 2: เลือกร้าน (พร้อมสถานะการกรอกข้อมูล) ============ -->
+<!-- ============ SCREEN 2: เลือกร้าน (แยกตาม Account + สถานะการกรอกข้อมูล) ============ -->
 <div id="screenStoreSelect" class="screen">
   <div class="topbar">
     <div><h1>เลือกร้าน</h1><div class="sub">รายงานสินค้า</div></div>
@@ -246,7 +336,7 @@
     <div class="summary-sub" id="storeSummarySub"></div>
   </div>
 
-  <div class="section-title">ร้านของฉัน</div>
+  <div class="section-title">ร้านของฉัน (แยกตาม Account)</div>
   <div id="storeListWrap"><div class="empty-state">กำลังโหลด…</div></div>
 </div>
 
@@ -362,12 +452,21 @@
       </span>
       <input type="text" id="productSearchInput" placeholder="ค้นหาชื่อ / บาร์โค้ด / SKU" oninput="onProductSearchInput()" autocomplete="off" enterkeyhint="search">
     </div>
+
+    <!-- ค้นหาด้วยบาร์โค้ด 2 ช่อง: บน = สินค้าชิ้นเดียว (PC_BARCODE) / ล่าง = แพ็ค (SHR_BARCODE) -->
+    <div class="filter-label">บาร์โค้ดสินค้าชิ้นเดียว</div>
+    <input type="text" id="productPcInput" class="code-input" inputmode="numeric" pattern="[0-9]*" maxlength="14"
+           placeholder="พิมพ์ตัวเลขบาร์โค้ดชิ้น" oninput="onBarcodeInput(this)" autocomplete="off" enterkeyhint="search">
+    <div class="filter-label">บาร์โค้ดแพ็ค</div>
+    <input type="text" id="productShrInput" class="code-input" inputmode="numeric" pattern="[0-9]*" maxlength="14"
+           placeholder="พิมพ์ตัวเลขบาร์โค้ดแพ็ค" oninput="onBarcodeInput(this)" autocomplete="off" enterkeyhint="search">
+
     <div class="filter-label">แบรนด์</div>
     <select id="brandFilterSelect" onchange="onBrandFilterChange()" disabled>
       <option value="">กำลังโหลดแบรนด์…</option>
     </select>
     <p class="brand-note hidden" id="brandNote" onclick="loadBrandsOnce_(true)"></p>
-    <p class="search-hint" id="productSearchHint">พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์</p>
+    <p class="search-hint" id="productSearchHint">พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือบาร์โค้ดอย่างน้อย 4 หลัก หรือเลือกแบรนด์</p>
   </div>
   <div id="productSearchResults"></div>
 </div>
@@ -428,12 +527,17 @@
   const PHOTO_MAX_EDGE = 1600;
   const PHOTO_JPEG_QUALITY = 0.75;
 
+  // หน้าค้นหาสินค้า: บาร์โค้ดต้องพิมพ์อย่างน้อยกี่หลักถึงจะค้น (ต้องตรงกับ SELF_REPORT_MIN_BARCODE_LENGTH ใน code.gs)
+  const MIN_BARCODE_DIGITS = 4;
+  const SEARCH_HINT_DEFAULT = 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือบาร์โค้ดอย่างน้อย 4 หลัก หรือเลือกแบรนด์';
+
   // ========== STATE ==========
   // หมายเหตุ: ไม่เก็บ lineUserId ฝั่งหน้าเว็บ — เซิร์ฟเวอร์ได้ LineID จาก ID token เอง
   let state = {
     staffName: '',
     profile: null,          // โปรไฟล์ LINE (ชื่อ/รูป) ใช้แสดงผลเท่านั้น
     stores: [],
+    accountGroups: [],      // [{ name, idxs[] }] ร้านที่จัดกลุ่มตาม Account (idxs = ตำแหน่งใน state.stores)
     progress: {},           // { storeId: { total, done, selfToday } } สถานะของทุกร้าน
     storeId: null,
     storeName: '',
@@ -477,6 +581,11 @@
   function goToScreen(id){
     document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    // หน้าเลือกร้านใช้ธีมมืด — สลับสีพื้นหลังของ body และแถบสถานะของมือถือให้ตรงกัน
+    const dark = id === 'screenStoreSelect';
+    document.body.classList.toggle('home-dark', dark);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', dark ? '#0A1B45' : '#1A55C4');
     window.scrollTo(0, 0);
   }
 
@@ -567,7 +676,7 @@
     }
   }
 
-  // ========== SCREEN 2: เลือกร้าน ==========
+  // ========== SCREEN 2: เลือกร้าน (แยกตาม Account) ==========
   function renderUserCard_(storeCount){
     const name = state.staffName || (state.profile && state.profile.displayName) || '';
     document.getElementById('userName').textContent = name;
@@ -582,16 +691,62 @@
     }
   }
 
+  /** ชื่อ Account ของร้าน (ว่าง = จัดไว้กลุ่ม "ไม่ระบุ Account") */
+  function accountName_(s){
+    return String(s.account === null || s.account === undefined ? '' : s.account).trim() || 'ไม่ระบุ Account';
+  }
+
+  /** จัดร้านเป็นกลุ่มตาม Account: กลุ่มเรียงตามตัวอักษร, ร้านในกลุ่มเรียงตามชื่อร้าน (เก็บเป็นตำแหน่งใน stores เดิม) */
+  function groupStoresByAccount_(stores){
+    const map = {};
+    const names = [];
+    stores.forEach((s, i) => {
+      const k = accountName_(s);
+      if (!map[k]){ map[k] = []; names.push(k); }
+      map[k].push(i);
+    });
+    names.sort((a, b) => a.localeCompare(b, 'th'));
+    const label = i => String(stores[i].storeName || stores[i].storeId || '');
+    return names.map(k => ({ name: k, idxs: map[k].sort((a, b) => label(a).localeCompare(label(b), 'th')) }));
+  }
+
   function renderStoreList(stores){
     const wrap = document.getElementById('storeListWrap');
-    wrap.innerHTML = stores.map((s, i) => `
-      <div class="card tappable" onclick="selectStore(${i})">
-        <h3>${esc(s.storeName || s.storeId)}</h3>
-        <p>${esc(s.account)} · ${esc(s.province)}</p>
-        <div class="store-progress" id="sp_${i}"><div class="mini-note">กำลังโหลดสถานะ…</div></div>
-      </div>
+    state.accountGroups = groupStoresByAccount_(stores);
+    wrap.innerHTML = state.accountGroups.map((g, gi) => `
+      <section class="acc-section" id="acc_${gi}">
+        <div class="acc-head" onclick="toggleAccount(${gi})" role="button" tabindex="0" aria-expanded="true">
+          <div class="acc-top">
+            <div class="acc-name">${esc(g.name)}</div>
+            <div class="acc-pct" id="acp_${gi}">–</div>
+            <div class="acc-chev" aria-hidden="true">▾</div>
+          </div>
+          <div class="acc-meta" id="acm_${gi}">${g.idxs.length} ร้าน · กำลังโหลดสถานะ…</div>
+          <div class="bar"><i id="acb_${gi}"></i></div>
+        </div>
+        <div class="acc-body">
+          ${g.idxs.map(i => {
+            const s = stores[i];
+            return `
+            <div class="card tappable store-card" onclick="selectStore(${i})">
+              <h3>${esc(s.storeName || s.storeId)}<span class="sid">${esc(s.storeId)}</span></h3>
+              <p>${esc(s.province)}</p>
+              <div class="store-progress" id="sp_${i}"><div class="mini-note">กำลังโหลดสถานะ…</div></div>
+            </div>`;
+          }).join('')}
+        </div>
+      </section>
     `).join('');
     window._stores = stores;
+  }
+
+  /** พับ / ขยายกลุ่ม Account */
+  function toggleAccount(gi){
+    const sec = document.getElementById('acc_' + gi);
+    if (!sec) return;
+    const collapsed = sec.classList.toggle('collapsed');
+    const head = sec.querySelector('.acc-head');
+    if (head) head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   }
 
   /** โหลดสถานะ "ทำแล้ว/เหลือ" ของทุกร้านแยกจากรายชื่อร้าน — รายชื่อร้านขึ้นก่อน สถานะตามมา */
@@ -635,6 +790,25 @@
 
       const el = document.getElementById('sp_' + i);
       if (el) el.innerHTML = html;
+    });
+
+    // สรุปรายกลุ่ม Account: รวมรายการที่ทำแล้ว/ทั้งหมดของทุกร้านใน Account นั้น
+    state.accountGroups.forEach((g, gi) => {
+      let total = 0, done = 0, accComplete = 0;
+      g.idxs.forEach(i => {
+        const p = state.progress[String(stores[i].storeId).trim()] || { total: 0, done: 0, selfToday: 0 };
+        total += p.total;
+        done += p.done;
+        if (p.total > 0 && p.done >= p.total) accComplete++;
+      });
+      const metaEl = document.getElementById('acm_' + gi);
+      const pctEl = document.getElementById('acp_' + gi);
+      const barEl = document.getElementById('acb_' + gi);
+      if (metaEl) metaEl.textContent = total > 0
+        ? `${g.idxs.length} ร้าน · ครบ ${accComplete} ร้าน · ทำแล้ว ${done}/${total} รายการ`
+        : `${g.idxs.length} ร้าน · ไม่มีงานตรวจตามที่ตั้งไว้`;
+      if (pctEl) pctEl.textContent = total > 0 ? pct_(done, total) + '%' : '–';
+      if (barEl) barEl.style.width = pct_(done, total) + '%';
     });
 
     document.getElementById('storeSummaryMain').textContent = `กรอกข้อมูลแล้ว ${started} / ${stores.length} ร้าน`;
@@ -1219,7 +1393,9 @@
     document.getElementById('productSearchTitle').textContent = 'ค้นหาสินค้า';
     document.getElementById('productSearchSub').textContent = kpi.kpiNameTh;
     document.getElementById('productSearchInput').value = '';
-    document.getElementById('productSearchHint').textContent = 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์';
+    document.getElementById('productPcInput').value = '';
+    document.getElementById('productShrInput').value = '';
+    document.getElementById('productSearchHint').textContent = SEARCH_HINT_DEFAULT;
     document.getElementById('productSearchResults').innerHTML = '';
     window._productResults = [];
     goToScreen('screenProductSearch');
@@ -1296,36 +1472,56 @@
     productSearchDebounce = setTimeout(runProductSearch, 500);
   }
 
+  /** ช่องบาร์โค้ด (ชิ้น / แพ็ค): เหลือเฉพาะตัวเลข (กันวางข้อความที่มีช่องว่าง/ขีด) แล้วค้นหาตามปกติ */
+  function onBarcodeInput(el){
+    const digits = el.value.replace(/\D/g, '');
+    if (digits !== el.value) el.value = digits;
+    onProductSearchInput();
+  }
+
   async function runProductSearch(){
     const q = document.getElementById('productSearchInput').value.trim();
+    const pc = document.getElementById('productPcInput').value.replace(/\D/g, '');
+    const shr = document.getElementById('productShrInput').value.replace(/\D/g, '');
     const brand = document.getElementById('brandFilterSelect').value;
     const hint = document.getElementById('productSearchHint');
     const wrap = document.getElementById('productSearchResults');
     const seq = ++state.searchSeq;
 
-    // ต้องมีอย่างน้อยอย่างใดอย่างหนึ่ง: คำค้น >= 2 ตัวอักษร หรือเลือกแบรนด์
-    if (q.length < 2 && !brand){
-      wrap.innerHTML = '';
-      hint.textContent = q.length === 0
-        ? 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์'
-        : 'พิมพ์อย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์';
+    // ต้องมีอย่างน้อยอย่างใดอย่างหนึ่ง: ชื่อ >= 2 ตัวอักษร / บาร์โค้ดชิ้น >= 4 หลัก / บาร์โค้ดแพ็ค >= 4 หลัก / เลือกแบรนด์
+    const hasCriteria = q.length >= 2 || pc.length >= MIN_BARCODE_DIGITS || shr.length >= MIN_BARCODE_DIGITS || !!brand;
+    if (!hasCriteria) wrap.innerHTML = '';
+
+    // มีช่องไหนพิมพ์ยังไม่ครบ — รอให้พิมพ์ครบก่อน ไม่ส่งคำค้นสั้นเกินไป
+    if (q.length === 1){
+      hint.textContent = !hasCriteria && q.length === 1 && !pc && !shr
+        ? 'พิมพ์อย่างน้อย 2 ตัวอักษร หรือเลือกแบรนด์'
+        : 'พิมพ์อย่างน้อย 2 ตัวอักษร';
       return;
     }
-    if (q.length === 1){ // พิมพ์ได้แค่ 1 ตัวอักษร (แม้เลือกแบรนด์ไว้) รอให้พิมพ์ครบก่อน ไม่ส่งคำค้นสั้นเกินไป
-      hint.textContent = 'พิมพ์อย่างน้อย 2 ตัวอักษร';
+    if (pc.length > 0 && pc.length < MIN_BARCODE_DIGITS){
+      hint.textContent = 'บาร์โค้ดชิ้น: พิมพ์อย่างน้อย ' + MIN_BARCODE_DIGITS + ' หลัก';
+      return;
+    }
+    if (shr.length > 0 && shr.length < MIN_BARCODE_DIGITS){
+      hint.textContent = 'บาร์โค้ดแพ็ค: พิมพ์อย่างน้อย ' + MIN_BARCODE_DIGITS + ' หลัก';
+      return;
+    }
+    if (!hasCriteria){
+      hint.textContent = SEARCH_HINT_DEFAULT;
       return;
     }
 
     hint.textContent = 'กำลังค้นหา…';
     try{
-      const result = await callApi('searchProducts', { query: q, brand: brand });
+      const result = await callApi('searchProducts', { query: q, brand: brand, pcBarcode: pc, shrBarcode: shr });
       if (seq !== state.searchSeq) return; // มีการค้นหาใหม่กว่าแล้ว ทิ้งผลรอบนี้
       if (!result.success){
         wrap.innerHTML = '';
         hint.textContent = result.error || 'ค้นหาไม่สำเร็จ';
         return;
       }
-      renderProductResults(result, q);
+      renderProductResults(result, { q: q, pc: pc, shr: shr });
     } catch(err){
       if (seq !== state.searchSeq) return;
       wrap.innerHTML = '';
@@ -1342,7 +1538,8 @@
     return esc(s.slice(0, at)) + '<mark>' + esc(s.slice(at, at + q.length)) + '</mark>' + esc(s.slice(at + q.length));
   }
 
-  function renderProductResults(result, q){
+  /** terms = { q, pc, shr } คำที่ใช้ค้นแต่ละช่อง (ไว้ไฮไลต์ในผลลัพธ์) */
+  function renderProductResults(result, terms){
     const hint = document.getElementById('productSearchHint');
     const wrap = document.getElementById('productSearchResults');
     const items = result.items || [];
@@ -1361,10 +1558,15 @@
       const tags = [];
       if (it.brand) tags.push('<span class="badge">' + esc(it.brand) + '</span>');
       if (it.category) tags.push('<span class="badge muted">' + esc(it.category) + '</span>');
+      // บาร์โค้ดเดียวกันอาจตรงหลาย SKU — โชว์ทั้งบาร์โค้ดชิ้น / แพ็ค / SKU เพื่อให้เลือกให้ถูกตัว
+      const idParts = [];
+      if (it.barcode) idParts.push('ชิ้น ' + highlight_(it.barcode, terms.pc || terms.q));
+      if (it.shrBarcode) idParts.push('แพ็ค ' + highlight_(it.shrBarcode, terms.shr || terms.q));
+      if (it.skuCode) idParts.push('SKU ' + highlight_(it.skuCode, terms.q));
       return `
         <div class="card tappable" onclick="openSelfForm(${i})">
-          <h3>${highlight_(it.nameTh || it.nameEn, q)}</h3>
-          <p>${highlight_(it.barcode, q)}${it.skuCode ? ' · SKU ' + highlight_(it.skuCode, q) : ''}</p>
+          <h3>${highlight_(it.nameTh || it.nameEn, terms.q)}</h3>
+          <p>${idParts.join(' · ')}</p>
           ${tags.length ? '<div class="tags">' + tags.join('') + '</div>' : ''}
         </div>`;
     }).join('');
@@ -1381,7 +1583,7 @@
     const found = findSelfKpi_(e.kpiId);
     state.currentSelfKpi = found ? found.kpi : { kpiId: e.kpiId, kpiNameTh: e.kpiNameTh, photoRequired: false };
     if (found) state.currentSelfGroup = { trackname: found.tile.trackname, title: found.tile.title, kpis: found.tile.kpis };
-    const product = { skuCode: e.skuCode, nameTh: e.itemLabel, nameEn: '', barcode: '', brand: '' };
+    const product = { skuCode: e.skuCode, nameTh: e.itemLabel, nameEn: '', barcode: '', shrBarcode: '', brand: '' };
     openSelfFormWith_(product, e);
   }
 
@@ -1397,7 +1599,11 @@
     state.photoSeq++;
 
     document.getElementById('selfFormTitle').textContent = kpi.kpiNameTh;
-    const idLine = [product.barcode, product.skuCode ? 'SKU ' + product.skuCode : ''].filter(Boolean).map(esc).join(' · ');
+    const idLine = [
+      product.barcode ? 'ชิ้น ' + product.barcode : '',
+      product.shrBarcode ? 'แพ็ค ' + product.shrBarcode : '',
+      product.skuCode ? 'SKU ' + product.skuCode : ''
+    ].filter(Boolean).map(esc).join(' · ');
     document.getElementById('selfProductSummary').innerHTML =
       '<div class="product-summary">' +
       '<h3 style="margin:0 0 4px; font-size:15px;">' + esc(product.nameTh || product.nameEn) + '</h3>' +
