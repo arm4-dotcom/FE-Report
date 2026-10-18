@@ -202,6 +202,13 @@
   .edit-hint.ok{color:var(--ok); background:var(--ok-soft);}
 
   /* ---------- หน้าเลือกร้าน: แยกร้านเป็นส่วนของแต่ละ Account (ธีมขาว-น้ำเงินเดียวกับทุกหน้า) ---------- */
+  .section-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:18px 2px 8px;}
+  .section-row .section-title{margin:0;}
+  .link-btn{
+    font-family:inherit; font-size:13px; font-weight:600; color:var(--accent-hover); background:var(--accent-soft);
+    border:1px solid var(--border); border-radius:999px; padding:7px 13px; cursor:pointer; white-space:nowrap; flex:none;
+  }
+  .link-btn:active{border-color:var(--accent);}
   .acc-section{margin-bottom:18px;}
   .acc-head{
     position:relative; cursor:pointer; overflow:hidden; -webkit-tap-highlight-color:transparent;
@@ -276,8 +283,12 @@
     <div class="summary-sub" id="storeSummarySub"></div>
   </div>
 
-  <div class="section-title">ร้านของฉัน (แยกตาม Account)</div>
+  <div class="section-row">
+    <div class="section-title">ร้านของฉัน (แยกตาม Account)</div>
+    <button class="link-btn" onclick="openRegisterPage()">＋ เพิ่ม/ลดร้าน</button>
+  </div>
   <div id="storeListWrap"><div class="empty-state">กำลังโหลด…</div></div>
+  <p class="mini-note" style="text-align:center;">ร้านไม่ครบ หรือมีร้านที่ไม่ได้ดูแลแล้ว? แตะ "เพิ่ม/ลดร้าน" เพื่อไปหน้าลงทะเบียน กลับมาแล้วรายการร้านจะอัปเดตให้เอง</p>
 </div>
 
 <!-- ============ SCREEN 3: เมนูหลักของร้าน ============ -->
@@ -503,7 +514,9 @@
     // ที่กรอกวันนี้ (ดู / แก้ไข / ลบ)
     entries: [],            // รายการที่ผู้ใช้กรอกวันนี้ในร้านนี้ (จากเซิร์ฟเวอร์ ไม่มีรูป)
     entriesSeq: 0,          // เลขรอบการโหลดรายการ กันผลของรอบเก่าทับรอบใหม่
-    editEntry: null         // รายการที่กำลังแก้ไขอยู่ (null = บันทึกใหม่ตามปกติ)
+    editEntry: null,        // รายการที่กำลังแก้ไขอยู่ (null = บันทึกใหม่ตามปกติ)
+    awaitingRegister: false, // true = เพิ่งเปิดหน้าลงทะเบียน (เพิ่ม/ลดร้าน) — กลับมาแล้วโหลดรายการร้านใหม่
+    registerOpenedAt: 0
   };
 
   // ========== HELPERS ==========
@@ -530,6 +543,8 @@
   }
 
   function openRegisterPage(){
+    state.awaitingRegister = true; // กลับมาจากหน้าลงทะเบียนแล้วให้โหลดรายการร้านใหม่
+    state.registerOpenedAt = Date.now();
     if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()){
       liff.openWindow({ url: REGISTER_LIFF_URL, external: false });
     } else {
@@ -568,6 +583,41 @@
     }
     return data;
   }
+
+  // ========== กลับจากหน้าลงทะเบียน (เพิ่ม/ลดร้าน) -> โหลดรายการร้านใหม่ ==========
+  let reloadingStores = false;
+
+  async function reloadStoresAfterRegister_(){
+    if (!state.awaitingRegister || reloadingStores) return;
+    if (Date.now() - state.registerOpenedAt < 2000) return; // อีเวนต์ที่เกิดตอนเพิ่งกดเปิดหน้าลงทะเบียน ยังไม่ใช่การกลับมา
+    const active = document.querySelector('.screen.active');
+    if (!active || (active.id !== 'screenStoreSelect' && active.id !== 'screenNotRegistered')) return;
+    state.awaitingRegister = false;
+    reloadingStores = true;
+    try{
+      const result = await callApi('getStores', {});
+      if (!result.success) throw new Error(result.error || 'โหลดร้านไม่สำเร็จ');
+      const stores = result.stores || [];
+      if (stores.length === 0){
+        goToScreen('screenNotRegistered');
+        return;
+      }
+      state.staffName = result.staffName || state.staffName;
+      state.stores = stores;
+      state.progress = {};
+      renderUserCard_(stores.length);
+      renderStoreList(stores);
+      goToScreen('screenStoreSelect');
+      loadStoreProgress();
+    } catch(err){
+      state.awaitingRegister = true; // โหลดไม่สำเร็จ ลองใหม่ตอนกลับเข้าหน้านี้อีกครั้ง
+    } finally {
+      reloadingStores = false;
+    }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reloadStoresAfterRegister_(); });
+  window.addEventListener('focus', reloadStoresAfterRegister_);
+  window.addEventListener('pageshow', reloadStoresAfterRegister_);
 
   // ========== INIT ==========
   window.addEventListener('DOMContentLoaded', init);
