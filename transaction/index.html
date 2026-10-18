@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1A55C4">
 <title>ตรวจร้าน — Arm Project H2 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   :root{
@@ -201,87 +201,27 @@
   .edit-hint{font-size:13px; color:var(--accent-hover); background:var(--accent-soft); border-radius:10px; padding:8px 12px; margin:0 0 14px;}
   .edit-hint.ok{color:var(--ok); background:var(--ok-soft);}
 
-  /* =====================================================================
-     หน้าแรก (เลือกร้าน): ธีมมืดแนวล้ำสมัย + แยกร้านเป็นส่วนของแต่ละ Account
-     ใช้เฉพาะหน้า #screenStoreSelect — หน้าอื่นคงธีมขาว-ฟ้าเดิม
-     ===================================================================== */
-  body.home-dark{background:#060D1F;}
-  #screenStoreSelect{
-    --h-text:#E6F0FF; --h-soft:#8EA4C8; --h-line:rgba(110,180,255,.20);
-    --h-cyan:#35D6FF; --h-blue:#4C8DFF; --h-ok:#5BE3A0;
-    color:var(--h-text);
-    background:
-      radial-gradient(520px 260px at 92% -40px, rgba(53,214,255,.20), transparent 70%),
-      radial-gradient(460px 280px at -12% 70px, rgba(76,141,255,.20), transparent 70%),
-      linear-gradient(rgba(110,180,255,.06) 1px, transparent 1px) 0 0/30px 30px,
-      linear-gradient(90deg, rgba(110,180,255,.06) 1px, transparent 1px) 0 0/30px 30px,
-      #060D1F;
-  }
-  #screenStoreSelect .topbar{
-    background:linear-gradient(135deg,#0A1B45 0%,#0F3170 100%);
-    box-shadow:0 6px 24px rgba(0,0,0,.45), 0 1px 0 rgba(53,214,255,.40);
-  }
-  #screenStoreSelect .topbar .sub{color:var(--h-cyan);}
-  #screenStoreSelect .section-title{color:var(--h-soft);}
-  #screenStoreSelect .empty-state{color:var(--h-soft);}
-
-  #screenStoreSelect .card{
-    background:rgba(255,255,255,.045); border:1px solid var(--h-line);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.30);
-  }
-  #screenStoreSelect .card.tappable:active{background:rgba(53,214,255,.10); border-color:var(--h-cyan);}
-  #screenStoreSelect .card h3{color:var(--h-text);}
-  #screenStoreSelect .card p,
-  #screenStoreSelect .user-sub,
-  #screenStoreSelect .summary-title,
-  #screenStoreSelect .summary-sub,
-  #screenStoreSelect .mini-note{color:var(--h-soft);}
-  #screenStoreSelect .summary-main,
-  #screenStoreSelect .user-name,
-  #screenStoreSelect .progress-row{color:var(--h-text);}
-  #screenStoreSelect .avatar{
-    background-color:rgba(53,214,255,.12); color:var(--h-cyan);
-    box-shadow:0 0 0 2px rgba(53,214,255,.45), 0 0 14px rgba(53,214,255,.35);
-  }
-  #screenStoreSelect .line-badge{background:rgba(91,227,160,.12); color:var(--h-ok); border-color:rgba(91,227,160,.38);}
-  #screenStoreSelect .bar{background:rgba(255,255,255,.09);}
-  #screenStoreSelect .bar > i{
-    background:linear-gradient(90deg,var(--h-blue),var(--h-cyan)); box-shadow:0 0 10px rgba(53,214,255,.55);
-  }
-  #screenStoreSelect .badge{background:rgba(76,141,255,.18); color:#A9CCFF;}
-  #screenStoreSelect .badge.ok{background:rgba(91,227,160,.15); color:var(--h-ok);}
-  #screenStoreSelect .badge.muted{background:rgba(255,255,255,.08); color:#9FB3D1;}
-
-  /* กลุ่ม Account */
+  /* ---------- หน้าเลือกร้าน: แยกร้านเป็นส่วนของแต่ละ Account (ธีมขาว-น้ำเงินเดียวกับทุกหน้า) ---------- */
   .acc-section{margin-bottom:18px;}
   .acc-head{
     position:relative; cursor:pointer; overflow:hidden; -webkit-tap-highlight-color:transparent;
-    padding:14px 14px 14px 18px; border-radius:14px; border:1px solid var(--h-line);
-    background:linear-gradient(135deg, rgba(76,141,255,.20), rgba(53,214,255,.05));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 22px rgba(0,0,0,.30);
+    padding:14px 14px 14px 18px; border-radius:var(--radius); border:1px solid var(--border);
+    background:var(--accent-soft); box-shadow:var(--shadow);
   }
-  .acc-head::before{
-    content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
-    background:linear-gradient(180deg,var(--h-cyan),var(--h-blue)); box-shadow:0 0 12px var(--h-cyan);
-  }
-  .acc-head:active{border-color:var(--h-cyan);}
+  .acc-head::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent-grad);}
+  .acc-head:active{border-color:var(--accent);}
+  .acc-head .bar{background:#fff;}
   .acc-top{display:flex; align-items:center; gap:10px;}
-  .acc-name{flex:1; min-width:0; font-size:18px; font-weight:700; letter-spacing:.02em; overflow-wrap:anywhere;}
-  .acc-pct{
-    font-family:'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace; font-size:22px; line-height:1;
-    color:var(--h-cyan); text-shadow:0 0 10px rgba(53,214,255,.55); flex:none;
-  }
-  .acc-chev{width:20px; text-align:center; color:var(--h-soft); flex:none; transition:transform .18s ease;}
+  .acc-name{flex:1; min-width:0; font-size:17px; font-weight:700; color:var(--text); overflow-wrap:anywhere;}
+  .acc-pct{font-size:18px; font-weight:700; color:var(--accent-hover); flex:none;}
+  .acc-chev{width:20px; text-align:center; color:var(--text-soft); flex:none; transition:transform .18s ease;}
   .acc-section.collapsed .acc-chev{transform:rotate(-90deg);}
-  .acc-meta{font-size:12px; color:var(--h-soft); margin:6px 0 10px;}
-  .acc-body{margin:10px 0 0 6px; padding-left:10px; border-left:1px dashed rgba(110,180,255,.28);}
+  .acc-meta{font-size:12px; color:var(--text-soft); margin:6px 0 10px;}
+  .acc-body{margin:10px 0 0 6px; padding-left:10px; border-left:2px solid var(--border);}
   .acc-section.collapsed .acc-body{display:none;}
   .store-card{margin-bottom:10px; padding:14px;}
   .store-card h3{margin-bottom:2px;}
-  .sid{
-    font-family:'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace; font-size:12px;
-    color:var(--h-cyan); margin-left:6px; white-space:nowrap;
-  }
+  .sid{font-size:12px; font-weight:500; color:var(--text-soft); margin-left:6px; white-space:nowrap;}
   @media (prefers-reduced-motion: reduce){
     .acc-chev, .bar > i, .card.tappable, .menu-tile{transition:none;}
   }
@@ -581,11 +521,6 @@
   function goToScreen(id){
     document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    // หน้าเลือกร้านใช้ธีมมืด — สลับสีพื้นหลังของ body และแถบสถานะของมือถือให้ตรงกัน
-    const dark = id === 'screenStoreSelect';
-    document.body.classList.toggle('home-dark', dark);
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#0A1B45' : '#1A55C4');
     window.scrollTo(0, 0);
   }
 
@@ -983,9 +918,14 @@
     const tid = esc(e.transactionId);
     const tags = [`<span class="badge muted">⏱ ${esc(e.time)}</span>`];
     if (e.hasPhoto) tags.push('<span class="badge">📷 แนบรูปแล้ว</span>');
+    // งานแจ้งเอง: โชว์บาร์โค้ดที่เลือก (ชิ้น / แพ็ค) และ SKU ใต้ชื่อสินค้า
+    const idLine = e.kind === 'self'
+      ? [e.barcodeText, e.skuCode ? 'SKU ' + e.skuCode : ''].filter(Boolean).join(' · ')
+      : '';
     return `
       <div class="card">
         <h3>${esc(e.itemLabel || e.kpiNameTh)}</h3>
+        ${idLine ? `<p>${esc(idLine)}</p>` : ''}
         <p>${esc(e.kpiNameTh)}</p>
         <p class="entry-value">${esc(e.valueText)}</p>
         <div class="tags">${tags.join('')}</div>
@@ -1521,6 +1461,9 @@
         hint.textContent = result.error || 'ค้นหาไม่สำเร็จ';
         return;
       }
+      // จำชนิดบาร์โค้ดที่ใช้ค้น: ค้นด้วยบาร์โค้ดชิ้นอย่างเดียว = 'PC', แพ็คอย่างเดียว = 'SHR', อื่นๆ (ชื่อ/แบรนด์/ใส่ทั้งสองช่อง) = ว่าง
+      window._lastSearchBarcodeType = (pc.length >= MIN_BARCODE_DIGITS && shr.length < MIN_BARCODE_DIGITS) ? 'PC'
+        : (shr.length >= MIN_BARCODE_DIGITS && pc.length < MIN_BARCODE_DIGITS) ? 'SHR' : '';
       renderProductResults(result, { q: q, pc: pc, shr: shr });
     } catch(err){
       if (seq !== state.searchSeq) return;
@@ -1573,8 +1516,10 @@
   }
 
   function openSelfForm(idx){
-    const product = (window._productResults || [])[idx];
-    if (!product) return;
+    const found = (window._productResults || [])[idx];
+    if (!found) return;
+    // แนบชนิดบาร์โค้ดที่ใช้ค้น (PC / SHR) ไปกับสินค้าที่เลือก เพื่อบันทึกลงรายการ
+    const product = Object.assign({}, found, { barcodeType: window._lastSearchBarcodeType || '' });
     openSelfFormWith_(product, null);
   }
 
@@ -1583,7 +1528,10 @@
     const found = findSelfKpi_(e.kpiId);
     state.currentSelfKpi = found ? found.kpi : { kpiId: e.kpiId, kpiNameTh: e.kpiNameTh, photoRequired: false };
     if (found) state.currentSelfGroup = { trackname: found.tile.trackname, title: found.tile.title, kpis: found.tile.kpis };
-    const product = { skuCode: e.skuCode, nameTh: e.itemLabel, nameEn: '', barcode: '', shrBarcode: '', brand: '' };
+    const product = {
+      skuCode: e.skuCode, nameTh: e.itemLabel, nameEn: '', brand: '',
+      barcode: e.barcode || '', shrBarcode: e.shrBarcode || '', barcodeType: e.barcodeType || ''
+    };
     openSelfFormWith_(product, e);
   }
 
@@ -1599,9 +1547,11 @@
     state.photoSeq++;
 
     document.getElementById('selfFormTitle').textContent = kpi.kpiNameTh;
+    const showPc = product.barcodeType !== 'SHR';
+    const showShr = product.barcodeType !== 'PC';
     const idLine = [
-      product.barcode ? 'ชิ้น ' + product.barcode : '',
-      product.shrBarcode ? 'แพ็ค ' + product.shrBarcode : '',
+      (showPc && product.barcode) ? 'ชิ้น ' + product.barcode : '',
+      (showShr && product.shrBarcode) ? 'แพ็ค ' + product.shrBarcode : '',
       product.skuCode ? 'SKU ' + product.skuCode : ''
     ].filter(Boolean).map(esc).join(' · ');
     document.getElementById('selfProductSummary').innerHTML =
@@ -1675,6 +1625,7 @@
       storeId: state.storeId,
       kpiId: kpi.kpiId,
       skuCode: product.skuCode,
+      barcodeType: product.barcodeType || '',
       oh: String(oh).trim(),
       od: String(od).trim(),
       remark: document.getElementById('selfRemark').value.trim()
