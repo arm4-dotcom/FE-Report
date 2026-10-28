@@ -131,10 +131,12 @@ const CONFIG = {
 let auth = null;          // {idToken} หรือ {devLineId}
 let picked = null;        // ร้านที่เลือก
 let combos = [];          // [ssp, account, customer] จาก STOREMASTER
-let mineIds = new Set();  // StoreID ที่ลงทะเบียนแล้ว
+let mineIds = new Set();  // กุญแจร้านที่ลงทะเบียนแล้ว = Account|StoreID (ดู storeKey)
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normKey = s => String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase();
+// ร้านหนึ่งร้าน = Account + รหัสสาขา (รหัสสาขาอย่างเดียวซ้ำกันข้ามห้างได้)
+const storeKey = o => normKey(o.account) + '|' + String(o.storeId == null ? '' : o.storeId).trim();
 
 function toast(text, isErr){
   const m = $('msg'); m.textContent = text; m.className = isErr ? 'err' : ''; m.style.display = 'block';
@@ -245,9 +247,9 @@ async function loadMine(prefill){
 }
 
 function renderMine(regs){
-  mineIds = new Set(regs.map(r => r.storeId));
+  mineIds = new Set(regs.map(storeKey));
   $('cnt').textContent = regs.length;
-  $('mine').innerHTML = regs.map(r => `<li><div><b>${esc(r.storeName)}</b><small>${esc(meta(r))}</small></div><button type="button" class="del" data-id="${esc(r.storeId)}">ลบ</button></li>`).join('');
+  $('mine').innerHTML = regs.map(r => `<li><div><b>${esc(r.storeName)}</b><small>${esc(meta(r))}</small></div><button type="button" class="del" data-id="${esc(r.storeId)}" data-acc="${esc(r.account)}">ลบ</button></li>`).join('');
   $('mineEmpty').classList.toggle('hide', regs.length > 0);
 }
 
@@ -261,7 +263,7 @@ $('mine').onclick = async ev => {
   }
   b.disabled = true; b.textContent = 'กำลังลบ…';
   try {
-    const out = await api('unregister', { storeId: b.dataset.id });
+    const out = await api('unregister', { storeId: b.dataset.id, account: b.dataset.acc });
     renderMine(out.registrations);
     toast('ลบร้านออกจากรายการแล้ว');
   } catch (e){ b.disabled = false; b.textContent = 'ลบ'; delete b.dataset.arm; b.classList.remove('armed'); toast(e.message, true); }
@@ -283,7 +285,7 @@ function runSearch(){
       if (seq !== searchSeq) return;
       $('qHint').textContent = out.stores.length ? (out.more ? 'แสดงเฉพาะส่วนแรก พิมพ์ชื่อหรือรหัสร้านเพื่อกรองเพิ่ม' : '') : 'ไม่พบร้านที่ตรงกัน ลองใช้รหัสร้านหรือคำอื่น';
       $('results').innerHTML = out.stores.map((s, i) =>
-        `<li><button type="button" data-i="${i}">${esc(s.name)}<small>${esc(meta(s))}${mineIds.has(s.storeId) ? ' · ลงทะเบียนแล้ว' : ''}</small></button></li>`).join('');
+        `<li><button type="button" data-i="${i}">${esc(s.name)}<small>${esc(meta(s))}${mineIds.has(storeKey(s)) ? ' · ลงทะเบียนแล้ว' : ''}</small></button></li>`).join('');
       $('results').classList.toggle('hide', !out.stores.length);
       $('results').onclick = ev => {
         const b = ev.target.closest('button[data-i]'); if (!b) return;
@@ -299,7 +301,7 @@ $('cust').addEventListener('change', () => { runSearch(); });
 
 function pick(s){
   picked = s;
-  $('pickedText').textContent = `${s.name} (รหัส ${s.storeId})`;
+  $('pickedText').textContent = `${s.name} (${s.account ? s.account + ' · ' : ''}รหัส ${s.storeId})`;
   $('picked').classList.remove('hide'); $('searchBox').classList.add('hide');
   $('results').classList.add('hide');
 }
@@ -320,7 +322,7 @@ $('save').onclick = async () => {
   if (!picked) return toast('กรุณาเลือกร้าน', true);
   const btn = $('save'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   try {
-    const out = await api('register', { name, phone, position, storeId: picked.storeId });
+    const out = await api('register', { name, phone, position, storeId: picked.storeId, account: picked.account });
     renderMine(out.registrations);
     toast(out.mode === 'updated' ? `อัปเดตร้าน ${out.storeName} แล้ว` : `ลงทะเบียนร้าน ${out.storeName} แล้ว`);
     $('change').click();
