@@ -178,6 +178,17 @@
     border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:10px; padding:10px 12px;
   }
 
+  /* ---------- เพิ่มสินค้าใหม่ (เมื่อค้นไม่เจอ) ---------- */
+  .new-cta{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:12px;
+    border-top:1px dashed var(--border); font-size:13px; color:var(--text-soft);
+  }
+  .new-form input.code-input{letter-spacing:.04em;}
+  .new-form .field-note{font-size:12px; color:var(--text-soft); margin:-8px 2px 14px;}
+  .dup-box{margin-bottom:14px;}
+  .dup-box .banner{margin-bottom:10px;}
+  .dup-box .secondary-btn{margin-top:4px;}
+
   /* ---------- ที่กรอกวันนี้ (ดู / แก้ไข / ลบ) ---------- */
   .my-entries-btn .progress-row{margin-bottom:2px; font-size:15px;}
   .my-entries-btn .chev{font-size:20px; color:var(--text-soft); line-height:1;}
@@ -198,6 +209,7 @@
     background:var(--ok-soft); color:var(--ok); border:1px solid #BFE8CF;
   }
   .banner.err{background:#FDECEA; color:var(--danger); border-color:#F4C7C0;}
+  .banner.warn{background:var(--warn-soft); color:var(--warn); border-color:#F2D3B3;}
   .edit-hint{font-size:13px; color:var(--accent-hover); background:var(--accent-soft); border-radius:10px; padding:8px 12px; margin:0 0 14px;}
   .edit-hint.ok{color:var(--ok); background:var(--ok-soft);}
 
@@ -418,8 +430,48 @@
     </select>
     <p class="brand-note hidden" id="brandNote" onclick="loadBrandsOnce_(true)"></p>
     <p class="search-hint" id="productSearchHint">พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือบาร์โค้ดอย่างน้อย 4 หลัก หรือเลือกแบรนด์</p>
+
+    <!-- ค้นไม่เจอ: เพิ่มสินค้าใหม่เข้าระบบจากหน้าร้านได้เลย -->
+    <div class="new-cta">
+      <span>ค้นหาแล้วไม่พบสินค้า?</span>
+      <button class="link-btn" onclick="openNewProduct()">＋ เพิ่มสินค้าใหม่</button>
+    </div>
   </div>
   <div id="productSearchResults"></div>
+</div>
+
+<!-- ============ แจ้งเอง: เพิ่มสินค้าใหม่ (เมื่อค้นไม่เจอ) ============ -->
+<div id="screenNewProduct" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="backFromNewProduct()">‹</button>
+    <div><h1>เพิ่มสินค้าใหม่</h1><div class="sub" id="newProdSub"></div></div>
+  </div>
+
+  <div class="card new-form">
+    <p class="edit-hint">ใช้เมื่อค้นหาแล้วไม่พบสินค้า — ระบบจะบันทึกเป็น "สินค้าใหม่ · รอตรวจสอบ" ให้ทีมงานเพิ่มเข้าฐานข้อมูลหลักต่อ และคุณแจ้ง OH / OD ของสินค้านี้ต่อได้ทันที</p>
+
+    <div id="newProdDup" class="dup-box hidden"></div>
+
+    <label for="newProdName">ชื่อสินค้า (บังคับ)</label>
+    <input type="text" id="newProdName" maxlength="150" placeholder="ชื่อ ขนาด/รส ตามที่เห็นบนฉลาก" autocomplete="off">
+
+    <label for="newProdPc">บาร์โค้ดสินค้าชิ้นเดียว (ถ้ามี)</label>
+    <input type="text" id="newProdPc" class="code-input" inputmode="numeric" pattern="[0-9]*" maxlength="14"
+           placeholder="ตัวเลข 8-14 หลัก" oninput="onDigitsOnly(this)" autocomplete="off">
+
+    <label for="newProdShr">บาร์โค้ดแพ็ค (ถ้ามี)</label>
+    <input type="text" id="newProdShr" class="code-input" inputmode="numeric" pattern="[0-9]*" maxlength="14"
+           placeholder="ตัวเลข 8-14 หลัก" oninput="onDigitsOnly(this)" autocomplete="off">
+
+    <label for="newProdBrand">แบรนด์ (ถ้ามี)</label>
+    <input type="text" id="newProdBrand" list="newProdBrandList" maxlength="60" placeholder="พิมพ์ หรือเลือกจากรายการ" autocomplete="off">
+    <datalist id="newProdBrandList"></datalist>
+
+    <p class="field-note">ถ้ามีบาร์โค้ด ช่วยกรอกด้วยนะ — ทีมงานจะจับคู่กับสินค้าในระบบได้เร็วขึ้น</p>
+
+    <button class="primary" id="newProdSubmitBtn" onclick="handleCreateNewProduct(false)">บันทึกสินค้าใหม่ และแจ้งต่อ</button>
+    <p class="error-msg" id="newProdError"></p>
+  </div>
 </div>
 
 <!-- ============ แจ้งเอง: ฟอร์ม OH / OD ============ -->
@@ -481,6 +533,11 @@
   // หน้าค้นหาสินค้า: บาร์โค้ดต้องพิมพ์อย่างน้อยกี่หลักถึงจะค้น (ต้องตรงกับ SELF_REPORT_MIN_BARCODE_LENGTH ใน code.gs)
   const MIN_BARCODE_DIGITS = 4;
   const SEARCH_HINT_DEFAULT = 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร หรือบาร์โค้ดอย่างน้อย 4 หลัก หรือเลือกแบรนด์';
+
+  // หน้าเพิ่มสินค้าใหม่: ต้องตรงกับ NEWPRODUCT_* ใน code.gs
+  const NEWPROD_MIN_NAME = 2;
+  const NEWPROD_MIN_BARCODE = 8;
+  const NEWPROD_MAX_BARCODE = 14;
 
   // ========== STATE ==========
   // หมายเหตุ: ไม่เก็บ lineUserId ฝั่งหน้าเว็บ — เซิร์ฟเวอร์ได้ LineID จาก ID token เอง
@@ -1539,7 +1596,7 @@
     window._productResults = items;
 
     if (items.length === 0){
-      hint.textContent = 'ไม่พบสินค้าที่ตรงกับเงื่อนไข';
+      hint.textContent = 'ไม่พบสินค้าที่ตรงกับเงื่อนไข — แตะ "＋ เพิ่มสินค้าใหม่" ด้านบนได้ถ้าไม่มีสินค้านี้ในระบบ';
       wrap.innerHTML = '';
       return;
     }
@@ -1549,17 +1606,18 @@
 
     wrap.innerHTML = items.map((it, i) => {
       const tags = [];
+      if (it.isNew) tags.push('<span class="badge warn">สินค้าใหม่ · รอตรวจสอบ</span>');
       if (it.brand) tags.push('<span class="badge">' + esc(it.brand) + '</span>');
       if (it.category) tags.push('<span class="badge muted">' + esc(it.category) + '</span>');
       // บาร์โค้ดเดียวกันอาจตรงหลาย SKU — โชว์ทั้งบาร์โค้ดชิ้น / แพ็ค / SKU เพื่อให้เลือกให้ถูกตัว
       const idParts = [];
       if (it.barcode) idParts.push('ชิ้น ' + highlight_(it.barcode, terms.pc || terms.q));
       if (it.shrBarcode) idParts.push('แพ็ค ' + highlight_(it.shrBarcode, terms.shr || terms.q));
-      if (it.skuCode) idParts.push('SKU ' + highlight_(it.skuCode, terms.q));
+      if (it.skuCode && !it.isNew) idParts.push('SKU ' + highlight_(it.skuCode, terms.q));
       return `
         <div class="card tappable" onclick="openSelfForm(${i})">
           <h3>${highlight_(it.nameTh || it.nameEn, terms.q)}</h3>
-          <p>${idParts.join(' · ')}</p>
+          ${idParts.length ? '<p>' + idParts.join(' · ') + '</p>' : ''}
           ${tags.length ? '<div class="tags">' + tags.join('') + '</div>' : ''}
         </div>`;
     }).join('');
@@ -1571,6 +1629,126 @@
     // แนบชนิดบาร์โค้ดที่ใช้ค้น (PC / SHR) ไปกับสินค้าที่เลือก เพื่อบันทึกลงรายการ
     const product = Object.assign({}, found, { barcodeType: window._lastSearchBarcodeType || '' });
     openSelfFormWith_(product, null);
+  }
+
+  // ========== เพิ่มสินค้าใหม่ (เมื่อค้นไม่เจอ) ==========
+  /** ช่องตัวเลขล้วน (บาร์โค้ด) ในฟอร์มเพิ่มสินค้าใหม่ — ไม่ยิงค้นหา */
+  function onDigitsOnly(el){
+    const digits = el.value.replace(/\D/g, '');
+    if (digits !== el.value) el.value = digits;
+  }
+
+  function openNewProduct(){
+    clearTimeout(productSearchDebounce);
+    // เติมสิ่งที่พิมพ์ค้นไว้ให้ (ถ้าช่องค้นหาเป็นบาร์โค้ดล้วน 8-14 หลัก ถือเป็นบาร์โค้ดชิ้น ไม่ใช่ชื่อ)
+    const q = document.getElementById('productSearchInput').value.trim();
+    let name = q;
+    let pc = document.getElementById('productPcInput').value.replace(/\D/g, '');
+    const shr = document.getElementById('productShrInput').value.replace(/\D/g, '');
+    if (/^\d{8,14}$/.test(q)){
+      if (!pc) pc = q;
+      name = '';
+    }
+    const brandSel = document.getElementById('brandFilterSelect').value;
+
+    document.getElementById('newProdName').value = name;
+    document.getElementById('newProdPc').value = pc;
+    document.getElementById('newProdShr').value = shr;
+    document.getElementById('newProdBrand').value = brandSel || '';
+    document.getElementById('newProdSub').textContent = state.currentSelfKpi ? state.currentSelfKpi.kpiNameTh : '';
+    document.getElementById('newProdBrandList').innerHTML =
+      (state.brands || []).map(b => `<option value="${esc(b)}"></option>`).join('');
+    document.getElementById('newProdError').style.display = 'none';
+    const dup = document.getElementById('newProdDup');
+    dup.classList.add('hidden');
+    dup.innerHTML = '';
+    window._dupItems = [];
+    goToScreen('screenNewProduct');
+  }
+
+  function backFromNewProduct(){
+    goToScreen('screenProductSearch');
+  }
+
+  /** force = true: พนักงานยืนยันว่าไม่ใช่ตัวเดียวกับสินค้าที่ระบบเตือนว่าซ้ำ */
+  async function handleCreateNewProduct(force){
+    const errEl = document.getElementById('newProdError');
+    const btn = document.getElementById('newProdSubmitBtn');
+    errEl.style.display = 'none';
+
+    const name = document.getElementById('newProdName').value.replace(/\s+/g, ' ').trim();
+    const pc = document.getElementById('newProdPc').value.replace(/\D/g, '');
+    const shr = document.getElementById('newProdShr').value.replace(/\D/g, '');
+    const brand = document.getElementById('newProdBrand').value.replace(/\s+/g, ' ').trim();
+
+    const fail = msg => { errEl.textContent = msg; errEl.style.display = 'block'; };
+    if (name.length < NEWPROD_MIN_NAME) return fail('ชื่อสินค้า: พิมพ์อย่างน้อย ' + NEWPROD_MIN_NAME + ' ตัวอักษร');
+    if (pc && (pc.length < NEWPROD_MIN_BARCODE || pc.length > NEWPROD_MAX_BARCODE)){
+      return fail('บาร์โค้ดชิ้น: ต้องมี ' + NEWPROD_MIN_BARCODE + '-' + NEWPROD_MAX_BARCODE + ' หลัก (หรือเว้นว่างไว้)');
+    }
+    if (shr && (shr.length < NEWPROD_MIN_BARCODE || shr.length > NEWPROD_MAX_BARCODE)){
+      return fail('บาร์โค้ดแพ็ค: ต้องมี ' + NEWPROD_MIN_BARCODE + '-' + NEWPROD_MAX_BARCODE + ' หลัก (หรือเว้นว่างไว้)');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก…';
+    try{
+      // ไม่ส่ง lineUserId / staffName — เซิร์ฟเวอร์ดึงจาก ID token + Lineregister เอง
+      const result = await callApi('createNewProduct', {
+        storeId: state.storeId, name: name, pcBarcode: pc, shrBarcode: shr, brand: brand, force: !!force
+      });
+      if (result && result.duplicate){
+        renderNewProductDuplicates_(result);
+        return;
+      }
+      if (!result || !result.success) throw new Error((result && result.error) || 'บันทึกไม่สำเร็จ');
+
+      const dup = document.getElementById('newProdDup');
+      dup.classList.add('hidden');
+      dup.innerHTML = '';
+      // ชนิดบาร์โค้ด: กรอกชิ้นอย่างเดียว = 'PC', แพ็คอย่างเดียว = 'SHR', อื่นๆ = ว่าง
+      const barcodeType = (pc && !shr) ? 'PC' : ((shr && !pc) ? 'SHR' : '');
+      openSelfFormWith_(Object.assign({}, result.product, { barcodeType: barcodeType }), null);
+    } catch(err){
+      fail('บันทึกไม่สำเร็จ: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'บันทึกสินค้าใหม่ และแจ้งต่อ';
+    }
+  }
+
+  /** พบสินค้าที่น่าจะซ้ำ: ให้เลือกสินค้าเดิม หรือยืนยันว่าไม่ใช่ตัวเดียวกันแล้วสร้างใหม่ */
+  function renderNewProductDuplicates_(result){
+    const items = result.items || [];
+    window._dupItems = items;
+    const box = document.getElementById('newProdDup');
+    const cards = items.map((it, i) => {
+      const idParts = [];
+      if (it.barcode) idParts.push('ชิ้น ' + esc(it.barcode));
+      if (it.shrBarcode) idParts.push('แพ็ค ' + esc(it.shrBarcode));
+      if (it.skuCode && !it.isNew) idParts.push('SKU ' + esc(it.skuCode));
+      const tags = [];
+      if (it.isNew) tags.push('<span class="badge warn">สินค้าใหม่ · รอตรวจสอบ</span>');
+      if (it.brand) tags.push('<span class="badge">' + esc(it.brand) + '</span>');
+      return `
+        <div class="card tappable" onclick="pickDuplicate(${i})">
+          <h3>${esc(it.nameTh || it.nameEn)}</h3>
+          ${idParts.length ? '<p>' + idParts.join(' · ') + '</p>' : ''}
+          ${tags.length ? '<div class="tags">' + tags.join('') + '</div>' : ''}
+        </div>`;
+    }).join('');
+    box.innerHTML =
+      '<div class="banner warn">' + esc(result.error || 'พบสินค้าที่น่าจะเป็นตัวเดียวกันในระบบแล้ว') + '</div>' +
+      cards +
+      '<button class="secondary-btn" onclick="handleCreateNewProduct(true)">ไม่ใช่ตัวเดียวกัน — สร้างสินค้าใหม่</button>';
+    box.classList.remove('hidden');
+    window.scrollTo(0, 0);
+  }
+
+  function pickDuplicate(idx){
+    const found = (window._dupItems || [])[idx];
+    if (!found) return;
+    openSelfFormWith_(Object.assign({}, found, { barcodeType: '' }), null);
   }
 
   /** แก้ไขรายการแจ้งเอง (OOS) — เปลี่ยนสินค้าไม่ได้ (ผูกกับรหัสรายการ) ถ้าสินค้าผิดให้ลบแล้วแจ้งใหม่ */
@@ -1602,13 +1780,16 @@
     const idLine = [
       (showPc && product.barcode) ? 'ชิ้น ' + product.barcode : '',
       (showShr && product.shrBarcode) ? 'แพ็ค ' + product.shrBarcode : '',
-      product.skuCode ? 'SKU ' + product.skuCode : ''
+      (product.skuCode && !product.isNew) ? 'SKU ' + product.skuCode : ''
     ].filter(Boolean).map(esc).join(' · ');
+    const summaryTags = [];
+    if (product.isNew) summaryTags.push('<span class="badge warn">สินค้าใหม่ · รอตรวจสอบ</span>');
+    if (product.brand) summaryTags.push('<span class="badge">' + esc(product.brand) + '</span>');
     document.getElementById('selfProductSummary').innerHTML =
       '<div class="product-summary">' +
       '<h3 style="margin:0 0 4px; font-size:15px;">' + esc(product.nameTh || product.nameEn) + '</h3>' +
       (idLine ? '<div style="font-size:12px; color:var(--text-soft);">' + idLine + '</div>' : '') +
-      (product.brand ? '<div class="tags"><span class="badge">' + esc(product.brand) + '</span></div>' : '') +
+      (summaryTags.length ? '<div class="tags">' + summaryTags.join('') + '</div>' : '') +
       '</div>';
 
     const hint = document.getElementById('selfEditHint');
