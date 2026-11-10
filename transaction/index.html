@@ -244,6 +244,48 @@
   @media (prefers-reduced-motion: reduce){
     .acc-chev, .bar > i, .card.tappable, .menu-tile{transition:none;}
   }
+  /* ---------- OSA (ใหม่ v3.12) ---------- */
+  .osa-store{margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);}
+  .osa-tile{border-color:#BFD3F5;}
+  .osa-step{font-size:15px; font-weight:700; margin-bottom:6px;}
+  .osa-photo-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;}
+  .osa-ph{
+    position:relative; aspect-ratio:3/4; border-radius:10px; overflow:hidden; background:#E8EEF7; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .osa-ph img{width:100%; height:100%; object-fit:cover; display:block;}
+  .osa-ph.small{width:84px; flex:none;}
+  .osa-ph-add{flex-direction:column; color:var(--accent-hover); font-size:13px; font-weight:600; border:1.5px dashed var(--accent); background:var(--accent-soft); margin:0;}
+  .osa-ph-add span{font-size:28px; line-height:1; margin-bottom:4px;}
+  .osa-ph-state{
+    position:absolute; inset:auto 0 0 0; background:rgba(18,35,61,.72); color:#fff; font-size:11px; text-align:center; padding:4px 2px;
+  }
+  .osa-ph-state.err{inset:0; display:flex; align-items:center; justify-content:center; background:rgba(194,65,45,.85);}
+  .osa-ph-del{
+    position:absolute; top:4px; right:4px; width:26px; height:26px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(18,35,61,.7); color:#fff; font-size:17px; line-height:26px; padding:0;
+  }
+  .osa-result{margin:6px 0 0;}
+  .osa-result button{padding:12px 6px; font-size:15px;}
+  .osa-sku{border:1px solid var(--border); border-radius:10px; margin-bottom:8px; background:#fff;}
+  .osa-sku.on{border-color:var(--warn); background:var(--warn-soft);}
+  .osa-sku-head{display:flex; align-items:center; gap:10px; padding:12px; cursor:pointer;}
+  .osa-check{
+    width:24px; height:24px; border-radius:6px; border:2px solid var(--border); flex:none; display:flex; align-items:center;
+    justify-content:center; font-weight:700; color:#fff; background:#fff;
+  }
+  .osa-sku.on .osa-check{background:var(--warn); border-color:var(--warn);}
+  .osa-sku-name{font-size:14px; line-height:1.4; overflow-wrap:anywhere;}
+  .osa-sku-body{padding:0 12px 12px 46px;}
+  .osa-pills{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  .osa-pill{
+    font-family:inherit; font-size:13px; padding:7px 12px; border-radius:999px; border:1px solid var(--border);
+    background:#fff; color:var(--text); cursor:pointer;
+  }
+  .osa-pill.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .osa-pill:disabled{cursor:default;}
+  .osa-sku-photo{display:flex; align-items:flex-end; gap:10px;}
+  .osa-shot{border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -507,6 +549,65 @@
   </div>
 </div>
 
+<!-- ============ OSA: รายการ Category ของร้าน (ใหม่ v3.12) ============ -->
+<div id="screenOsaCats" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="backFromOsaCats()">‹</button>
+    <div><h1 id="osaCatsTitle">OSA</h1><div class="sub" id="osaCatsSub"></div></div>
+  </div>
+  <div id="osaCatsBanner" class="banner hidden"></div>
+  <div class="card">
+    <div class="summary-title" id="osaCatsPeriod"></div>
+    <div class="summary-main" id="osaCatsMain"></div>
+    <div class="bar"><i id="osaCatsBar"></i></div>
+    <div class="summary-sub" id="osaCatsNote">ถ่ายรูปพื้นที่ของแต่ละหมวด ถ้ามีสินค้าขาดให้เลือกสินค้า ถ่ายรูปจุดที่ขาด และเลือกเหตุผล</div>
+  </div>
+  <div id="osaCatsWrap"><div class="empty-state">กำลังโหลด…</div></div>
+  <p class="mini-note" style="text-align:center;">แก้ไขหรือส่งทับได้เฉพาะวันเดียวกับที่ส่งล่าสุด — ข้ามวันแล้วล็อก</p>
+</div>
+
+<!-- ============ OSA: ฟอร์มของ 1 Category ============ -->
+<div id="screenOsaForm" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="backFromOsaForm()">‹</button>
+    <div><h1 id="osaFormTitle">หมวด</h1><div class="sub" id="osaFormSub"></div></div>
+  </div>
+
+  <p class="edit-hint hidden" id="osaFormHint"></p>
+
+  <div class="card">
+    <div class="osa-step">1. ถ่ายรูปพื้นที่หมวดนี้</div>
+    <div class="photo-status" id="osaPhotoCount" style="margin:0 0 10px;"></div>
+    <div class="osa-photo-grid" id="osaPhotoGrid"></div>
+    <input type="file" id="osaAreaInput" class="hidden" accept="image/*" capture="environment" onchange="onOsaAreaPhoto(this)">
+  </div>
+
+  <div class="card" id="osaResultCard">
+    <div class="osa-step">2. สินค้าในหมวดนี้ครบไหม</div>
+    <div class="segmented osa-result" id="osaResultSeg">
+      <button type="button" id="osaResComplete" onclick="setOsaResult('COMPLETE')">✓ ครบ</button>
+      <button type="button" id="osaResMissing" onclick="setOsaResult('MISSING')">มีสินค้าขาด</button>
+    </div>
+    <div id="osaResultView" class="hidden"></div>
+  </div>
+
+  <div class="card hidden" id="osaMissingCard">
+    <div class="osa-step">3. แตะสินค้าที่ขาด แล้วถ่ายรูปจุดที่ขาด + เลือกเหตุผล</div>
+    <div class="photo-status" id="osaMissingCount" style="margin:0 0 10px;"></div>
+    <input type="text" id="osaItemFilter" placeholder="ค้นชื่อสินค้า / บาร์โค้ด" oninput="renderOsaItems_()" autocomplete="off">
+    <div id="osaItemList"></div>
+    <input type="file" id="osaSkuInput" class="hidden" accept="image/*" capture="environment" onchange="onOsaSkuPhoto(this)">
+  </div>
+
+  <div class="card" id="osaRemarkCard">
+    <label for="osaRemark">หมายเหตุ (ถ้ามี)</label>
+    <textarea id="osaRemark" maxlength="300" placeholder="พิมพ์หมายเหตุเพิ่มเติม…" oninput="state.osa.form && (state.osa.form.remark = this.value, state.osa.form.dirty = true)"></textarea>
+    <button class="primary" id="osaSubmitBtn" onclick="handleOsaSubmit()">บันทึกหมวดนี้</button>
+    <p class="error-msg" id="osaFormError" style="margin-top:12px;"></p>
+    <button class="entry-btn danger hidden" id="osaDeleteBtn" style="width:100%; margin-top:8px;" onclick="handleOsaDelete(this)">ลบผลของหมวดนี้</button>
+  </div>
+</div>
+
 <!-- ============ SCREEN 6: ยืนยัน ============ -->
 <div id="screenConfirm" class="screen">
   <div style="padding-top:16vh; text-align:center;">
@@ -573,7 +674,14 @@
     entriesSeq: 0,          // เลขรอบการโหลดรายการ กันผลของรอบเก่าทับรอบใหม่
     editEntry: null,        // รายการที่กำลังแก้ไขอยู่ (null = บันทึกใหม่ตามปกติ)
     awaitingRegister: false, // true = เพิ่งเปิดหน้าลงทะเบียน (เพิ่ม/ลดร้าน) — กลับมาแล้วโหลดรายการร้านใหม่
-    registerOpenedAt: 0
+    registerOpenedAt: 0,
+    // OSA (v3.12)
+    storeAccount: '',       // Account ของร้านที่เลือก (จากรายการร้าน) — OSA ระบุร้านด้วย Account + StoreID
+    osaStatus: [],          // สถานะ OSA ของทุกร้าน (หน้าเลือกร้าน)
+    osaStatusSeq: 0,
+    osaMenu: null,          // รอบ OSA ที่เปิดของร้านที่เลือก — null = ยังไม่โหลด
+    osaMenuSeq: 0,
+    osa: { periodId: '', detail: null, form: null, uploadChain: Promise.resolve() }
   };
 
   // ========== HELPERS ==========
@@ -774,6 +882,7 @@
               <h3>${esc(s.storeName || s.storeId)}<span class="sid">${esc(s.storeId)}</span></h3>
               <p>${esc(s.province)}</p>
               <div class="store-progress" id="sp_${i}"><div class="mini-note">กำลังโหลดสถานะ…</div></div>
+              <div class="osa-store hidden" id="osa_${i}"></div>
             </div>`;
           }).join('')}
         </div>
@@ -793,6 +902,7 @@
 
   /** โหลดสถานะ "ทำแล้ว/เหลือ" ของทุกร้านแยกจากรายชื่อร้าน — รายชื่อร้านขึ้นก่อน สถานะตามมา */
   async function loadStoreProgress(){
+    loadOsaStoreStatus_(); // v3.12: ป้าย OSA ใต้ร้าน (โหลดแยก ไม่รอกัน)
     try{
       const result = await callApi('getStoreProgress', {});
       if (!result.success) throw new Error(result.error || 'โหลดสถานะไม่สำเร็จ');
@@ -868,6 +978,8 @@
     const s = window._stores[idx];
     state.storeId = s.storeId;
     state.storeName = s.storeName;
+    state.storeAccount = s.account; // v3.12: OSA ระบุร้านด้วย Account + StoreID
+    state.osaMenu = null;
     goToScreen('screenLoading');
     document.getElementById('loadingText').textContent = 'กำลังโหลดเมนู…';
     await loadTaskList();
@@ -888,6 +1000,7 @@
       await refreshTasks_();
       renderMenu_();
       goToScreen('screenTaskList');
+      loadOsaMenu_(); // v3.12: ช่อง OSA โหลดแยก ไม่ทำให้เมนูเดิมช้าลง
     } catch(err){
       alert('โหลดรายการงานไม่สำเร็จ: ' + (err.message || err));
       goToScreen('screenStoreSelect');
@@ -924,7 +1037,7 @@
           <div class="menu-sub">${esc(disabled ? 'วันนี้ไม่มีงาน' : t.subtitle)}</div>
           ${disabled ? '' : `<div class="menu-stat">ทำแล้ว ${t.done}/${t.total}</div><div class="mini-bar"><i style="width:${pct_(t.done, t.total)}%"></i></div>`}
         </div>`;
-    }).join('');
+    }).join('') + osaMenuTilesHtml_();
   }
 
   function openMenuTile(idx){
@@ -1920,6 +2033,591 @@
     goToScreen('screenLoading');
     document.getElementById('loadingText').textContent = 'กำลังโหลดเมนู…';
     await loadTaskList();
+  }
+
+  // =====================================================================
+  // ========== OSA (ใหม่ v3.12): เก็บภาพ OSA ตาม Category ==========
+  // =====================================================================
+  // ลำดับ: เลือกร้าน -> เมนูร้าน (ช่อง OSA) -> รายการ Category -> ฟอร์มหมวด (รูปพื้นที่ + ครบ/มีขาด + สินค้าที่ขาด)
+  // รูปอัปโหลดทีละรูปทันทีที่ถ่าย (osaUploadPhoto) ตอนบันทึกส่งแค่ลิงก์ — กันหมดเวลาเมื่อถ่ายหลายรูป
+
+  /** Account แบบ normalize — ต้องตรงกับ osaAccKey_ ใน code.gs */
+  function osaAccKey_(v){
+    return String(v === null || v === undefined ? '' : v).trim().toUpperCase().replace(/\s+/g, '').replace(/[-'’._]/g, '');
+  }
+
+  function osaDriveId_(url){
+    const m = String(url || '').match(/[?&]id=([\w-]+)/) || String(url || '').match(/\/d\/([\w-]+)/);
+    return m ? m[1] : '';
+  }
+
+  function osaThumb_(url){
+    const id = osaDriveId_(url);
+    return id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=w400' : url;
+  }
+
+  function osaOpenUrl_(url){
+    if (!url) return;
+    try{
+      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) { liff.openWindow({ url: url, external: true }); return; }
+    } catch(e){}
+    window.open(url, '_blank');
+  }
+
+  // ---------- หน้าเลือกร้าน: ป้าย OSA ใต้ร้านที่ต้องตรวจ ----------
+  async function loadOsaStoreStatus_(){
+    const seq = ++state.osaStatusSeq;
+    try{
+      const result = await callApi('osaGetStoreStatus', {});
+      if (seq !== state.osaStatusSeq || !result.success) return;
+      state.osaStatus = result.items || [];
+      fillOsaStoreBadges_();
+    } catch(err){ /* OSA โหลดไม่ได้ ไม่กระทบหน้าเลือกร้าน */ }
+  }
+
+  function fillOsaStoreBadges_(){
+    (state.stores || []).forEach((s, i) => {
+      const el = document.getElementById('osa_' + i);
+      if (!el) return;
+      const items = (state.osaStatus || []).filter(x =>
+        osaAccKey_(x.account) === osaAccKey_(s.account) && String(x.storeId) === String(s.storeId).trim());
+      if (!items.length){ el.classList.add('hidden'); el.innerHTML = ''; return; }
+      el.innerHTML = items.map(x => {
+        const done = x.totalCats > 0 && x.doneCats >= x.totalCats;
+        return `<div class="progress-row"><span>📸 OSA · ${esc(x.periodName)}: ส่งแล้ว ${x.doneCats}/${x.totalCats} หมวด</span>` +
+               `<span class="badge ${done ? 'ok' : 'warn'}">${done ? 'ครบแล้ว' : 'ต้องถ่าย'}</span></div>`;
+      }).join('');
+      el.classList.remove('hidden');
+    });
+  }
+
+  // ---------- เมนูร้าน: ช่อง OSA ----------
+  async function loadOsaMenu_(){
+    const seq = ++state.osaMenuSeq;
+    const acc = state.storeAccount, sid = state.storeId;
+    try{
+      const result = await callApi('osaGetMenu', { account: acc, storeId: sid });
+      if (seq !== state.osaMenuSeq) return;
+      state.osaMenu = result.success ? (result.items || []) : [];
+    } catch(err){
+      if (seq !== state.osaMenuSeq) return;
+      state.osaMenu = [];
+    }
+    const active = document.querySelector('.screen.active');
+    if (active && active.id === 'screenTaskList') renderMenu_();
+  }
+
+  function osaMenuTilesHtml_(){
+    return (state.osaMenu || []).map((x, k) => {
+      const done = x.totalCats > 0 && x.doneCats >= x.totalCats;
+      return `
+        <div class="menu-tile osa-tile" onclick="openOsaPeriod(${k})">
+          <div class="menu-icon">📸</div>
+          <div class="menu-title">OSA</div>
+          <div class="menu-sub">${esc(x.periodName)}<br>ถึง ${esc(x.endDate || '')}</div>
+          <div class="menu-stat">${done ? 'ครบแล้ว ' : 'ส่งแล้ว '}${x.doneCats}/${x.totalCats} หมวด</div>
+          <div class="mini-bar"><i style="width:${pct_(x.doneCats, x.totalCats)}%"></i></div>
+        </div>`;
+    }).join('');
+  }
+
+  // ---------- รายการ Category ----------
+  async function openOsaPeriod(k){
+    const x = (state.osaMenu || [])[k];
+    if (!x) return;
+    state.osa.periodId = x.periodId;
+    goToScreen('screenLoading');
+    document.getElementById('loadingText').textContent = 'กำลังโหลดหมวดสินค้า…';
+    try{
+      await loadOsaDetail_();
+      renderOsaCats_();
+      goToScreen('screenOsaCats');
+    } catch(err){
+      alert('โหลดข้อมูล OSA ไม่สำเร็จ: ' + (err.message || err));
+      backToMenu();
+    }
+  }
+
+  async function loadOsaDetail_(){
+    const result = await callApi('osaGetStoreDetail', {
+      periodId: state.osa.periodId, account: state.storeAccount, storeId: state.storeId
+    });
+    if (!result.success) throw new Error(result.error || 'โหลดไม่สำเร็จ');
+    state.osa.detail = result;
+  }
+
+  function showOsaCatsBanner_(msg, isErr){
+    const b = document.getElementById('osaCatsBanner');
+    b.textContent = msg;
+    b.classList.toggle('err', !!isErr);
+    b.classList.remove('hidden');
+    clearTimeout(showOsaCatsBanner_.t);
+    showOsaCatsBanner_.t = setTimeout(() => b.classList.add('hidden'), isErr ? 7000 : 4000);
+  }
+
+  function renderOsaCats_(){
+    const d = state.osa.detail;
+    const cats = d.categories || [];
+    const done = cats.filter(c => c.status !== 'none').length;
+    const missing = cats.filter(c => c.status === 'missing').length;
+    document.getElementById('osaCatsTitle').textContent = 'OSA · ' + (d.store.storeName || d.store.storeId);
+    document.getElementById('osaCatsSub').textContent = d.store.account + ' · ' + d.store.storeId;
+    document.getElementById('osaCatsPeriod').textContent = d.period.periodName + ' · ส่งได้ถึง ' + d.period.endDate;
+    document.getElementById('osaCatsMain').textContent = `ส่งแล้ว ${done} / ${cats.length} หมวด` + (missing ? ` · มีขาด ${missing} หมวด` : '');
+    document.getElementById('osaCatsBar').style.width = pct_(done, cats.length) + '%';
+
+    const wrap = document.getElementById('osaCatsWrap');
+    if (!cats.length){
+      wrap.innerHTML = '<div class="empty-state">ยังไม่มีรายชื่อสินค้าที่ต้องตรวจของ Account นี้ — แจ้ง Admin</div>';
+      return;
+    }
+    wrap.innerHTML = cats.map((c, i) => {
+      const s = c.submission;
+      let badge, meta = '';
+      if (!s) badge = '<span class="badge muted">ยังไม่ทำ</span>';
+      else if (c.status === 'missing') badge = `<span class="badge warn">มีขาด ${s.missingCount} รายการ</span>`;
+      else badge = '<span class="badge ok">✓ ครบ</span>';
+      if (s){
+        meta = `<div class="mini-note">ส่งโดย ${esc(s.staffName || '-')} · ${esc(s.submitDatetime)}${s.submitCount > 1 ? ' · ส่งทับ ' + (s.submitCount - 1) + ' ครั้ง' : ''}` +
+               ` · รูป ${s.photoUrls.length} รูป${s.editable ? '' : ' · 🔒 ล็อกแล้ว'}</div>`;
+      }
+      return `
+        <div class="card tappable ${s ? 'done' : ''}" onclick="openOsaCategory(${i})">
+          <div class="progress-row" style="margin-bottom:2px;"><h3 style="margin:0;">${esc(c.categoryTh)}</h3>${badge}</div>
+          <p>${esc(c.category)} · ${c.totalSku} รายการ</p>
+          ${meta}
+        </div>`;
+    }).join('');
+  }
+
+  function backFromOsaCats(){
+    state.osaMenu = null;
+    backToMenu();
+    loadOsaMenu_(); // อัปเดตตัวเลขบนช่อง OSA
+  }
+
+  // ---------- ฟอร์มของ 1 Category ----------
+  let osaPhotoKeySeq = 0;
+
+  function osaNewPhoto_(url){
+    return { key: 'p' + (++osaPhotoKeySeq), url: url || '', thumb: url ? osaThumb_(url) : '', status: url ? 'done' : 'processing', base64: null, mime: null, error: '' };
+  }
+
+  function openOsaCategory(i){
+    const d = state.osa.detail;
+    const c = d.categories[i];
+    if (!c) return;
+    const s = c.submission;
+    const editable = !s || s.editable;
+    const form = {
+      catIdx: i, cat: c, editable: editable, dirty: false,
+      photos: s ? s.photoUrls.map(u => osaNewPhoto_(u)) : [],
+      result: s ? (c.status === 'missing' ? 'MISSING' : 'COMPLETE') : '',
+      missing: {}, remark: s ? (s.remark || '') : '', skuTarget: null, deleteArmed: false
+    };
+    if (s) s.missing.forEach(m => {
+      form.missing[m.barcode] = { reasonId: m.reasonId, remark: m.remark || '', photo: m.photoUrl ? osaNewPhoto_(m.photoUrl) : null };
+    });
+    state.osa.form = form;
+
+    document.getElementById('osaFormTitle').textContent = c.categoryTh;
+    document.getElementById('osaFormSub').textContent = c.category + ' · ' + c.totalSku + ' รายการ · ' + (d.store.storeName || d.store.storeId);
+    const hint = document.getElementById('osaFormHint');
+    hint.classList.remove('ok');
+    if (!s){
+      hint.classList.add('hidden');
+    } else if (editable){
+      hint.textContent = `ส่งแล้วโดย ${s.staffName || '-'} เมื่อ ${s.submitDatetime} — บันทึกอีกครั้งจะทับข้อมูลเดิม (แก้ได้ถึงสิ้นวันนี้)`;
+      hint.classList.remove('hidden');
+    } else {
+      hint.textContent = `ส่งแล้วโดย ${s.staffName || '-'} เมื่อ ${s.submitDatetime} — 🔒 ข้ามวันแล้ว ดูได้อย่างเดียว`;
+      hint.classList.remove('hidden');
+    }
+    document.getElementById('osaRemark').value = form.remark;
+    document.getElementById('osaRemark').disabled = !editable;
+    document.getElementById('osaItemFilter').value = '';
+    document.getElementById('osaFormError').style.display = 'none';
+    document.getElementById('osaSubmitBtn').classList.toggle('hidden', !editable);
+    document.getElementById('osaSubmitBtn').textContent = s ? 'บันทึกทับข้อมูลเดิม' : 'บันทึกหมวดนี้';
+    const delBtn = document.getElementById('osaDeleteBtn');
+    delBtn.classList.toggle('hidden', !(s && s.deletable));
+    delBtn.classList.remove('armed');
+    delBtn.textContent = 'ลบผลของหมวดนี้';
+    document.getElementById('osaRemarkCard').classList.toggle('hidden', !editable && !form.remark);
+
+    renderOsaPhotos_();
+    renderOsaResult_();
+    goToScreen('screenOsaForm');
+  }
+
+  function osaSettings_(){ return (state.osa.detail && state.osa.detail.settings) || {}; }
+
+  function renderOsaPhotos_(){
+    const f = state.osa.form;
+    const st = osaSettings_();
+    const grid = document.getElementById('osaPhotoGrid');
+    const tiles = f.photos.map(p => {
+      let overlay = '';
+      if (p.status === 'processing') overlay = '<span class="osa-ph-state">กำลังย่อ…</span>';
+      else if (p.status === 'uploading') overlay = '<span class="osa-ph-state">กำลังอัปโหลด…</span>';
+      else if (p.status === 'error') overlay = `<span class="osa-ph-state err" onclick="event.stopPropagation(); retryOsaPhoto('${p.key}')">อัปโหลดไม่สำเร็จ<br>แตะเพื่อลองใหม่</span>`;
+      const remove = f.editable ? `<button type="button" class="osa-ph-del" aria-label="ลบรูป" onclick="event.stopPropagation(); removeOsaAreaPhoto('${p.key}')">×</button>` : '';
+      return `<div class="osa-ph" onclick="osaOpenUrl_('${esc(p.url)}')">` +
+             (p.thumb ? `<img src="${esc(p.thumb)}" alt="" loading="lazy">` : '') + overlay + remove + '</div>';
+    });
+    const maxP = st.maxAreaPhotos || 40;
+    if (f.editable && f.photos.length < maxP){
+      tiles.push(`<label class="osa-ph osa-ph-add" for="osaAreaInput"><span>＋</span>ถ่ายรูป</label>`);
+    }
+    grid.innerHTML = tiles.join('') || '<div class="mini-note">ไม่มีรูป</div>';
+    const doneN = f.photos.filter(p => p.status === 'done').length;
+    const min = st.minAreaPhotos || 0;
+    document.getElementById('osaPhotoCount').textContent = f.editable
+      ? `รูปพื้นที่ ${doneN} รูป${min ? ' (ขั้นต่ำ ' + min + ' รูป)' : ''}${f.photos.length > doneN ? ' · กำลังส่งรูป ' + (f.photos.length - doneN) + ' รูป' : ''} — ถ่ายได้หลายรูปจนครบพื้นที่`
+      : `รูปพื้นที่ ${doneN} รูป (แตะเพื่อดูรูปใหญ่)`;
+  }
+
+  function setOsaResult(r){
+    const f = state.osa.form;
+    if (!f || !f.editable) return;
+    f.result = r;
+    f.dirty = true;
+    renderOsaResult_();
+  }
+
+  function renderOsaResult_(){
+    const f = state.osa.form;
+    document.getElementById('osaResultSeg').classList.toggle('hidden', !f.editable);
+    document.getElementById('osaResComplete').classList.toggle('active', f.result === 'COMPLETE');
+    document.getElementById('osaResMissing').classList.toggle('active', f.result === 'MISSING');
+    const view = document.getElementById('osaResultView');
+    if (!f.editable){
+      view.innerHTML = f.result === 'MISSING'
+        ? `<span class="badge warn">มีสินค้าขาด ${Object.keys(f.missing).length} รายการ</span>`
+        : '<span class="badge ok">✓ ครบ</span>';
+      view.classList.remove('hidden');
+    } else {
+      view.classList.add('hidden');
+    }
+    document.getElementById('osaMissingCard').classList.toggle('hidden', f.result !== 'MISSING');
+    document.getElementById('osaItemFilter').classList.toggle('hidden', !f.editable);
+    if (f.result === 'MISSING') renderOsaItems_();
+  }
+
+  function renderOsaItems_(){
+    const f = state.osa.form;
+    const reasons = (state.osa.detail && state.osa.detail.reasons) || [];
+    const q = document.getElementById('osaItemFilter').value.trim().toLowerCase();
+    let items = f.cat.items;
+    if (!f.editable) items = items.filter(it => f.missing[it.barcode]);
+    else if (q) items = items.filter(it => (it.thai + ' ' + it.product + ' ' + it.barcode).toLowerCase().indexOf(q) !== -1 || f.missing[it.barcode]);
+
+    const n = Object.keys(f.missing).length;
+    document.getElementById('osaMissingCount').textContent = f.editable
+      ? `เลือกแล้ว ${n} รายการ — แตะชื่อสินค้าเพื่อเลือก/ยกเลิก`
+      : `สินค้าที่ขาด ${n} รายการ`;
+
+    document.getElementById('osaItemList').innerHTML = items.map(it => {
+      const m = f.missing[it.barcode];
+      const name = it.thai || it.product || it.barcode;
+      let body = '';
+      if (m){
+        const pills = reasons.map(r => `
+          <button type="button" class="osa-pill ${m.reasonId === r.reasonId ? 'on' : ''}" ${f.editable ? '' : 'disabled'}
+            onclick="setOsaReason('${esc(it.barcode)}','${esc(r.reasonId)}')">${esc(r.reasonTh)}</button>`).join('');
+        const p = m.photo;
+        let photoHtml;
+        if (p){
+          let st = '';
+          if (p.status === 'processing') st = 'กำลังย่อ…';
+          else if (p.status === 'uploading') st = 'กำลังอัปโหลด…';
+          else if (p.status === 'error') st = 'อัปโหลดไม่สำเร็จ แตะเพื่อลองใหม่';
+          photoHtml = `<div class="osa-sku-photo">
+              <div class="osa-ph small" onclick="${p.status === 'error' ? `retryOsaPhoto('${p.key}')` : `osaOpenUrl_('${esc(p.url)}')`}">
+                ${p.thumb ? `<img src="${esc(p.thumb)}" alt="" loading="lazy">` : ''}${st ? `<span class="osa-ph-state ${p.status === 'error' ? 'err' : ''}">${st}</span>` : ''}
+              </div>
+              ${f.editable ? `<button type="button" class="link-btn" onclick="takeOsaSkuPhoto('${esc(it.barcode)}')">ถ่ายใหม่</button>` : ''}
+            </div>`;
+        } else {
+          photoHtml = f.editable
+            ? `<button type="button" class="link-btn osa-shot" onclick="takeOsaSkuPhoto('${esc(it.barcode)}')">📷 ถ่ายรูปจุดที่ขาด</button>`
+            : '<div class="mini-note">ไม่มีรูป</div>';
+        }
+        body = `<div class="osa-sku-body"><div class="osa-pills">${pills}</div>${photoHtml}</div>`;
+      }
+      return `
+        <div class="osa-sku ${m ? 'on' : ''}">
+          <div class="osa-sku-head" ${f.editable ? `onclick="toggleOsaMissing('${esc(it.barcode)}')"` : ''}>
+            <span class="osa-check">${m ? '✓' : ''}</span>
+            <span class="osa-sku-name">${esc(name)}<span class="sid">${esc(it.barcode)}</span></span>
+          </div>
+          ${body}
+        </div>`;
+    }).join('') || '<div class="empty-state" style="padding:16px;">ไม่พบสินค้า</div>';
+  }
+
+  function toggleOsaMissing(barcode){
+    const f = state.osa.form;
+    if (!f.editable) return;
+    if (f.missing[barcode]){
+      const m = f.missing[barcode];
+      const hasData = m.reasonId || m.photo;
+      if (hasData && !confirm('ยกเลิกสินค้านี้ออกจากรายการที่ขาด? (รูปและเหตุผลที่เลือกไว้จะหายไป)')) return;
+      delete f.missing[barcode];
+    } else {
+      f.missing[barcode] = { reasonId: '', remark: '', photo: null };
+    }
+    f.dirty = true;
+    renderOsaItems_();
+  }
+
+  function setOsaReason(barcode, reasonId){
+    const f = state.osa.form;
+    if (!f.editable || !f.missing[barcode]) return;
+    f.missing[barcode].reasonId = reasonId;
+    f.dirty = true;
+    renderOsaItems_();
+  }
+
+  function takeOsaSkuPhoto(barcode){
+    state.osa.form.skuTarget = barcode;
+    const input = document.getElementById('osaSkuInput');
+    input.value = '';
+    input.click();
+  }
+
+  // ---------- รูป: ย่อ -> อัปโหลดทันที (ทีละรูป ตามคิว) ----------
+  async function osaPreparePhoto_(file, p){
+    try{
+      const shrunk = await shrinkPhoto_(file);
+      p.base64 = shrunk.dataUrl.split(',')[1];
+      p.mime = 'image/jpeg';
+      p.thumb = shrunk.dataUrl;
+    } catch(e){
+      const dataUrl = await readFileAsDataUrl_(file);
+      p.base64 = dataUrl.split(',')[1];
+      p.mime = file.type || 'image/jpeg';
+      p.thumb = dataUrl;
+    }
+  }
+
+  function osaRerender_(){
+    const f = state.osa.form;
+    if (!f) return;
+    renderOsaPhotos_();
+    if (f.result === 'MISSING') renderOsaItems_();
+  }
+
+  function osaEnqueueUpload_(p, barcode){
+    const form = state.osa.form;
+    p.status = 'uploading';
+    osaRerender_();
+    state.osa.uploadChain = state.osa.uploadChain.then(async () => {
+      if (state.osa.form !== form) return; // ออกจากหน้าฟอร์มไปแล้ว
+      try{
+        const result = await callApi('osaUploadPhoto', {
+          periodId: state.osa.periodId, account: state.storeAccount, storeId: state.storeId,
+          category: form.cat.category, barcode: barcode || '', photoBase64: p.base64, photoMimeType: p.mime
+        });
+        if (!result.success) throw new Error(result.error || 'อัปโหลดไม่สำเร็จ');
+        p.url = result.url;
+        p.status = 'done';
+        p.base64 = null; // คืนหน่วยความจำ (ยังมีรูปย่อสำหรับแสดง)
+      } catch(err){
+        p.status = 'error';
+        p.error = String(err.message || err);
+      }
+      if (state.osa.form === form) osaRerender_();
+    });
+  }
+
+  async function onOsaAreaPhoto(input){
+    const f = state.osa.form;
+    const files = Array.from(input.files || []);
+    input.value = ''; // ถ่ายรูปเดิมซ้ำได้
+    if (!f || !f.editable || !files.length) return;
+    for (const file of files){
+      const p = osaNewPhoto_('');
+      f.photos.push(p);
+      f.dirty = true;
+      renderOsaPhotos_();
+      try{
+        await osaPreparePhoto_(file, p);
+        osaEnqueueUpload_(p, '');
+      } catch(err){
+        p.status = 'error';
+        renderOsaPhotos_();
+      }
+    }
+  }
+
+  async function onOsaSkuPhoto(input){
+    const f = state.osa.form;
+    const file = (input.files || [])[0];
+    input.value = '';
+    if (!f || !f.editable || !file || !f.skuTarget || !f.missing[f.skuTarget]) return;
+    const barcode = f.skuTarget;
+    const p = osaNewPhoto_('');
+    f.missing[barcode].photo = p;
+    f.dirty = true;
+    renderOsaItems_();
+    try{
+      await osaPreparePhoto_(file, p);
+      osaEnqueueUpload_(p, barcode);
+    } catch(err){
+      p.status = 'error';
+      renderOsaItems_();
+    }
+  }
+
+  function osaFindPhoto_(key){
+    const f = state.osa.form;
+    if (!f) return null;
+    let found = f.photos.find(p => p.key === key);
+    let barcode = '';
+    if (!found){
+      Object.keys(f.missing).forEach(bc => {
+        const ph = f.missing[bc].photo;
+        if (ph && ph.key === key){ found = ph; barcode = bc; }
+      });
+    }
+    return found ? { p: found, barcode: barcode } : null;
+  }
+
+  function retryOsaPhoto(key){
+    const x = osaFindPhoto_(key);
+    if (!x || x.p.status !== 'error') return;
+    if (!x.p.base64){ alert('รูปนี้ต้องถ่ายใหม่'); return; }
+    osaEnqueueUpload_(x.p, x.barcode);
+  }
+
+  function removeOsaAreaPhoto(key){
+    const f = state.osa.form;
+    if (!f || !f.editable) return;
+    if (!confirm('ลบรูปนี้ออกจากหมวดนี้?')) return;
+    f.photos = f.photos.filter(p => p.key !== key);
+    f.dirty = true;
+    renderOsaPhotos_();
+  }
+
+  // ---------- บันทึก / ลบ ----------
+  function osaPendingUploads_(){
+    const f = state.osa.form;
+    const all = f.photos.slice();
+    Object.keys(f.missing).forEach(bc => { if (f.missing[bc].photo) all.push(f.missing[bc].photo); });
+    return {
+      busy: all.filter(p => p.status === 'processing' || p.status === 'uploading').length,
+      failed: all.filter(p => p.status === 'error').length
+    };
+  }
+
+  function showOsaFormError_(msg){
+    const el = document.getElementById('osaFormError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  async function handleOsaSubmit(){
+    const f = state.osa.form;
+    const st = osaSettings_();
+    document.getElementById('osaFormError').style.display = 'none';
+    if (!f || !f.editable) return;
+
+    const pend = osaPendingUploads_();
+    if (pend.busy) return showOsaFormError_('รอรูปอัปโหลดให้เสร็จก่อน (' + pend.busy + ' รูป)');
+    if (pend.failed) return showOsaFormError_('มีรูปที่อัปโหลดไม่สำเร็จ ' + pend.failed + ' รูป — แตะที่รูปเพื่อลองใหม่ หรือลบแล้วถ่ายใหม่');
+    const urls = f.photos.filter(p => p.status === 'done' && p.url).map(p => p.url);
+    if (urls.length < (st.minAreaPhotos || 0)) return showOsaFormError_('ถ่ายรูปพื้นที่หมวดนี้อย่างน้อย ' + st.minAreaPhotos + ' รูป');
+    if (!f.result) return showOsaFormError_('เลือกว่าสินค้าในหมวดนี้ "ครบ" หรือ "มีสินค้าขาด"');
+
+    const missing = [];
+    if (f.result === 'MISSING'){
+      const codes = Object.keys(f.missing);
+      if (!codes.length) return showOsaFormError_('แตะเลือกสินค้าที่ขาดอย่างน้อย 1 รายการ (หรือเลือก "ครบ")');
+      for (const bc of codes){
+        const m = f.missing[bc];
+        const it = f.cat.items.find(x => x.barcode === bc) || {};
+        const name = it.thai || it.product || bc;
+        if (st.missingReasonRequired && !m.reasonId) return showOsaFormError_('เลือกเหตุผลของ "' + name + '"');
+        if (st.missingPhotoRequired && !(m.photo && m.photo.url)) return showOsaFormError_('ถ่ายรูปจุดที่ขาดของ "' + name + '"');
+        missing.push({ barcode: bc, reasonId: m.reasonId, photoUrl: m.photo && m.photo.url ? m.photo.url : '', remark: m.remark || '' });
+      }
+    }
+
+    const btn = document.getElementById('osaSubmitBtn');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก…';
+    try{
+      const result = await callApi('osaSubmitCategory', {
+        periodId: state.osa.periodId, account: state.storeAccount, storeId: state.storeId,
+        category: f.cat.category, result: f.result, areaPhotoUrls: urls, missing: missing,
+        remark: document.getElementById('osaRemark').value.trim()
+      });
+      if (!result.success) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
+      f.dirty = false;
+      await osaReturnToCats_(`บันทึก "${f.cat.categoryTh}" แล้ว · ${result.result}${result.missingCount ? ' ' + result.missingCount + ' รายการ' : ''}${result.overwritten ? ' (ทับข้อมูลเดิม)' : ''}`, false);
+    } catch(err){
+      showOsaFormError_('บันทึกไม่สำเร็จ: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
+  async function handleOsaDelete(btn){
+    const f = state.osa.form;
+    if (!f) return;
+    if (!btn.classList.contains('armed')){
+      btn.classList.add('armed');
+      btn.textContent = 'แตะอีกครั้งเพื่อยืนยันการลบ';
+      clearTimeout(handleOsaDelete.t);
+      handleOsaDelete.t = setTimeout(() => { btn.classList.remove('armed'); btn.textContent = 'ลบผลของหมวดนี้'; }, 4000);
+      return;
+    }
+    clearTimeout(handleOsaDelete.t);
+    btn.disabled = true;
+    btn.textContent = 'กำลังลบ…';
+    try{
+      const result = await callApi('osaDeleteCategory', {
+        periodId: state.osa.periodId, account: state.storeAccount, storeId: state.storeId, category: f.cat.category
+      });
+      if (!result.success) throw new Error(result.error || 'ลบไม่สำเร็จ');
+      f.dirty = false;
+      await osaReturnToCats_('ลบผลของ "' + f.cat.categoryTh + '" แล้ว', false);
+    } catch(err){
+      showOsaFormError_('ลบไม่สำเร็จ: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('armed');
+      btn.textContent = 'ลบผลของหมวดนี้';
+    }
+  }
+
+  async function osaReturnToCats_(msg, isErr){
+    state.osa.form = null;
+    goToScreen('screenLoading');
+    document.getElementById('loadingText').textContent = 'กำลังโหลดหมวดสินค้า…';
+    try{
+      await loadOsaDetail_();
+      renderOsaCats_();
+      goToScreen('screenOsaCats');
+      if (msg) showOsaCatsBanner_(msg, isErr);
+    } catch(err){
+      alert('โหลดข้อมูล OSA ไม่สำเร็จ: ' + (err.message || err));
+      backFromOsaCats();
+    }
+  }
+
+  function backFromOsaForm(){
+    const f = state.osa.form;
+    if (f && f.editable){
+      const pend = osaPendingUploads_();
+      if ((f.dirty || pend.busy) && !confirm('ยังไม่ได้บันทึกหมวดนี้ — ออกจากหน้านี้เลยไหม? (รูปที่ถ่ายไว้จะไม่ถูกบันทึก)')) return;
+    }
+    state.osa.form = null;
+    renderOsaCats_();
+    goToScreen('screenOsaCats');
   }
 </script>
 
